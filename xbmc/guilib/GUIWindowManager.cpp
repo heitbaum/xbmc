@@ -22,7 +22,6 @@
 #include "application/ApplicationComponents.h"
 #include "application/ApplicationPlayer.h"
 #include "events/windows/GUIWindowEventLog.h"
-#include "favourites/GUIDialogFavourites.h"
 #include "favourites/GUIWindowFavourites.h"
 #include "input/actions/Action.h"
 #include "input/actions/ActionIDs.h"
@@ -49,6 +48,8 @@
 #include "utils/Variant.h"
 #include "utils/log.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
+#include "video/dialogs/GUIDialogVideoManagerExtras.h"
+#include "video/dialogs/GUIDialogVideoManagerVersions.h"
 #include "video/dialogs/GUIDialogVideoOSD.h"
 #include "video/windows/GUIWindowFullScreen.h"
 #include "video/windows/GUIWindowVideoNav.h"
@@ -229,7 +230,6 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogNetworkSetup);
   Add(new CGUIDialogMediaSource);
   Add(new CGUIDialogProfileSettings);
-  Add(new CGUIDialogFavourites);
   Add(new CGUIDialogSongInfo);
   Add(new CGUIDialogSmartPlaylistEditor);
   Add(new CGUIDialogSmartPlaylistRule);
@@ -293,6 +293,11 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogMusicInfo);
   Add(new CGUIDialogOK);
   Add(new CGUIDialogVideoInfo);
+  Add(new CGUIDialogVideoManagerVersions);
+  Add(new CGUIDialogVideoManagerExtras);
+  Add(new CGUIDialogSelect(WINDOW_DIALOG_SELECT_VIDEO_VERSION));
+  Add(new CGUIDialogSelect(WINDOW_DIALOG_SELECT_VIDEO_EXTRA));
+
   Add(new CGUIDialogTextViewer);
   Add(new CGUIWindowFullScreen);
   Add(new CGUIWindowVisualisation);
@@ -333,6 +338,10 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_MUSIC_NAV);
     DestroyWindow(WINDOW_DIALOG_MUSIC_INFO);
     DestroyWindow(WINDOW_DIALOG_VIDEO_INFO);
+    DestroyWindow(WINDOW_DIALOG_SELECT_VIDEO_EXTRA);
+    DestroyWindow(WINDOW_DIALOG_SELECT_VIDEO_VERSION);
+    DestroyWindow(WINDOW_DIALOG_MANAGE_VIDEO_EXTRAS);
+    DestroyWindow(WINDOW_DIALOG_MANAGE_VIDEO_VERSIONS);
     DestroyWindow(WINDOW_VIDEO_PLAYLIST);
     DestroyWindow(WINDOW_VIDEO_NAV);
     DestroyWindow(WINDOW_FILES);
@@ -364,7 +373,6 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_CONTENT_SETTINGS);
     DestroyWindow(WINDOW_DIALOG_INFOPROVIDER_SETTINGS);
     DestroyWindow(WINDOW_DIALOG_LIBEXPORT_SETTINGS);
-    DestroyWindow(WINDOW_DIALOG_FAVOURITES);
     DestroyWindow(WINDOW_DIALOG_SONG_INFO);
     DestroyWindow(WINDOW_DIALOG_SMART_PLAYLIST_EDITOR);
     DestroyWindow(WINDOW_DIALOG_SMART_PLAYLIST_RULE);
@@ -1521,7 +1529,7 @@ void CGUIWindowManager::SendThreadMessage(CGUIMessage& message, int window /*= 0
   std::unique_lock<CCriticalSection> lock(m_critSection);
 
   CGUIMessage* msg = new CGUIMessage(message);
-  m_vecThreadMessages.emplace_back(std::pair<CGUIMessage*, int>(msg,window));
+  m_vecThreadMessages.emplace_back(msg, window);
 }
 
 void CGUIWindowManager::DispatchThreadMessages()

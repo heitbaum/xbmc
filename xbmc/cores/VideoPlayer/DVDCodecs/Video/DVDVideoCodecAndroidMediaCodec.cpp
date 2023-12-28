@@ -68,24 +68,6 @@ enum MEDIACODEC_STATES
   MEDIACODEC_STATE_STOPPED
 };
 
-static bool IsSupportedColorFormat(int color_format)
-{
-  static const int supported_colorformats[] = {
-    CJNIMediaCodecInfoCodecCapabilities::COLOR_FormatYUV420Planar,
-    CJNIMediaCodecInfoCodecCapabilities::COLOR_TI_FormatYUV420PackedSemiPlanar,
-    CJNIMediaCodecInfoCodecCapabilities::COLOR_FormatYUV420SemiPlanar,
-    CJNIMediaCodecInfoCodecCapabilities::COLOR_QCOM_FormatYUV420SemiPlanar,
-    CJNIMediaCodecInfoCodecCapabilities::OMX_QCOM_COLOR_FormatYVU420SemiPlanarInterlace,
-    -1
-  };
-  for (const int *ptr = supported_colorformats; *ptr != -1; ptr++)
-  {
-    if (color_format == *ptr)
-      return true;
-  }
-  return false;
-}
-
 /*****************************************************************************/
 /*****************************************************************************/
 class CDVDMediaCodecOnFrameAvailable : public CEvent,
@@ -516,6 +498,10 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
       m_mime = "video/hevc";
       m_formatname = "amc-hevc";
 
+      const auto settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+      const bool convertDovi =
+          (settings) ? settings->GetBool(CSettings::SETTING_VIDEOPLAYER_CONVERTDOVI) : false;
+
       bool isDvhe = (m_hints.codec_tag == MKTAG('d', 'v', 'h', 'e'));
       bool isDvh1 = (m_hints.codec_tag == MKTAG('d', 'v', 'h', '1'));
 
@@ -531,26 +517,63 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
 
       if (isDvhe || isDvh1)
       {
-        bool displaySupportsDovi = CAndroidUtils::GetDisplayHDRCapabilities().SupportsDolbyVision();
-        bool mediaCodecSupportsDovi =
-            CAndroidUtils::SupportsMediaCodecMimeType("video/dolby-vision");
-
-        CLog::Log(LOGDEBUG,
-                  "CDVDVideoCodecAndroidMediaCodec::Open Dolby Vision playback support: "
-                  "Display: {}, MediaCodec: {}",
-                  displaySupportsDovi, mediaCodecSupportsDovi);
+        bool displaySupportsDovi{false};
+        bool mediaCodecSupportsDovi{false};
+        std::tie(displaySupportsDovi, mediaCodecSupportsDovi) =
+            CAndroidUtils::GetDolbyVisionCapabilities();
 
         // For Dolby Vision profiles that don't have HDR10 fallback, always use
         // the dvhe decoder even if the display not supports Dolby Vision.
         // For profiles that has HDR10 fallback (7, 8) is better use HEVC decoder to
         // ensure HDR10 output if display is not DV capable.
-        bool notHasHDR10fallback = (m_hints.dovi.dv_profile == 4 || m_hints.dovi.dv_profile == 5);
+        const bool notHasHDR10fallback =
+            (m_hints.dovi.dv_profile == 4 || m_hints.dovi.dv_profile == 5);
 
         if (mediaCodecSupportsDovi && (displaySupportsDovi || notHasHDR10fallback))
         {
           m_mime = "video/dolby-vision";
           m_formatname = isDvhe ? "amc-dvhe" : "amc-dvh1";
           profile = 0; // not an HEVC profile
+
+          if (CJNIBase::GetSDKVersion() >= 24)
+          {
+            switch (m_hints.dovi.dv_profile)
+            {
+              case 0:
+              case 1:
+              case 2:
+              case 3:
+              case 6:
+                // obsolete profiles that are not supported in current applications.
+                // 0 is ignored in case the AVDOVIDecoderConfigurationRecord hint is unset.
+                break;
+              case 4:
+                profile = CJNIMediaCodecInfoCodecProfileLevel::DolbyVisionProfileDvheDtr;
+                break;
+              case 5:
+                profile = CJNIMediaCodecInfoCodecProfileLevel::DolbyVisionProfileDvheStn;
+                break;
+              case 7:
+                // set profile 8 when converting
+                if (convertDovi && CJNIBase::GetSDKVersion() >= 27)
+                  profile = CJNIMediaCodecInfoCodecProfileLevel::DolbyVisionProfileDvheSt;
+
+                // Profile 7 is not commonly supported. Not setting the profile here
+                // allows to pick the first available Dolby Vision codec.
+                // profile = CJNIMediaCodecInfoCodecProfileLevel::DolbyVisionProfileDvheDtb;
+                break;
+              case 8:
+                if (CJNIBase::GetSDKVersion() >= 27)
+                  profile = CJNIMediaCodecInfoCodecProfileLevel::DolbyVisionProfileDvheSt;
+                break;
+              case 9:
+                if (CJNIBase::GetSDKVersion() >= 27)
+                  profile = CJNIMediaCodecInfoCodecProfileLevel::DolbyVisionProfileDvavSe;
+                break;
+              default:
+                break;
+            }
+          }
         }
       }
 
@@ -563,7 +586,19 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
         {
           m_bitstream.reset();
         }
+
+        // Only set for profile 7, container hint allows to skip parsing unnecessarily
+        if (m_bitstream && m_hints.dovi.dv_profile == 7)
+        {
+          CLog::Log(LOGDEBUG,
+                    "CDVDVideoCodecAndroidMediaCodec::Open Dolby Vision compatibility mode "
+                    "enabled: {}",
+                    convertDovi);
+
+          m_bitstream->SetConvertDovi(convertDovi);
+        }
       }
+
       break;
     }
     case AV_CODEC_ID_WMV3:
@@ -634,6 +669,28 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
       }
       m_mime = "video/av01";
       m_formatname = "amc-av1";
+
+      if (m_hints.hdrType == StreamHdrType::HDR_TYPE_DOLBYVISION && m_hints.dovi.dv_profile == 10)
+      {
+        bool displaySupportsDovi{false};
+        bool mediaCodecSupportsDovi{false};
+        std::tie(displaySupportsDovi, mediaCodecSupportsDovi) =
+            CAndroidUtils::GetDolbyVisionCapabilities();
+
+        const bool notHasHDRfallback = (m_hints.dovi.dv_bl_signal_compatibility_id == 0 ||
+                                        m_hints.dovi.dv_bl_signal_compatibility_id == 2 ||
+                                        m_hints.dovi.dv_bl_signal_compatibility_id == 3);
+
+        if (mediaCodecSupportsDovi && (displaySupportsDovi || notHasHDRfallback))
+        {
+          m_mime = "video/dolby-vision";
+          m_formatname = "amc-dav1";
+          profile = CJNIBase::GetSDKVersion() >= 30
+                        ? CJNIMediaCodecInfoCodecProfileLevel::DolbyVisionProfileDvav110
+                        : 1024;
+        }
+      }
+
       m_hints.extradata = {};
       break;
     }
@@ -658,6 +715,8 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
       uuid = CJNIUUID(0x9A04F07998404286LL, 0xAB92E65BE0885F95LL);
     else if (m_hints.cryptoSession->keySystem == CRYPTO_SESSION_SYSTEM_WISEPLAY)
       uuid = CJNIUUID(0X3D5E6D359B9A41E8LL, 0XB843DD3C6E72C42CLL);
+    else if (m_hints.cryptoSession->keySystem == CRYPTO_SESSION_SYSTEM_CLEARKEY)
+      uuid = CJNIUUID(0XE2719D58A985B3C9LL, 0X781AB030AF78D30ELL);
     else
     {
       CLog::Log(LOGERROR, "CDVDVideoCodecAndroidMediaCodec::Open Unsupported crypto-keysystem {}",
@@ -677,7 +736,6 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
   }
 
   m_codec = nullptr;
-  m_colorFormat = -1;
   codecInfos = CJNIMediaCodecList(CJNIMediaCodecList::REGULAR_CODECS).getCodecInfos();
 
   for (const CJNIMediaCodecInfo& codec_info : codecInfos)
@@ -715,8 +773,6 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
       continue;
     }
 
-    std::vector<int> color_formats = codec_caps.colorFormats();
-
     if (profile)
     {
       std::vector<CJNIMediaCodecInfoCodecProfileLevel> profileLevels = codec_caps.profileLevels();
@@ -749,16 +805,6 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
         {
           CLog::Log(LOGERROR, "CDVDVideoCodecAndroidMediaCodec::Open cannot create codec");
           continue;
-        }
-
-        for (size_t k = 0; k < color_formats.size(); ++k)
-        {
-          CLog::Log(LOGDEBUG,
-                    "CDVDVideoCodecAndroidMediaCodec::Open "
-                    "m_codecname({}), colorFormat({})",
-                    m_codecname, color_formats[k]);
-          if (IsSupportedColorFormat(color_formats[k]))
-            m_colorFormat = color_formats[k]; // Save color format for initial output configuration
         }
         break;
       }

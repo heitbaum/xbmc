@@ -41,7 +41,8 @@
 #include "video/VideoLibraryQueue.h"
 #include "video/VideoThumbLoader.h"
 #include "view/GUIViewState.h"
-#include "xbmc/interfaces/AnnouncementManager.h"
+
+#include <memory>
 
 #include <Platinum/Source/Platinum/Platinum.h>
 
@@ -408,8 +409,8 @@ PLT_MediaObject* CUPnPServer::Build(const std::shared_ptr<CFileItem>& item,
                 }
             }
         }
-        // playlists are folders
-        else if (item->IsPlayList())
+        // all playlist types are folders
+        else if (item->IsPlayList() || item->IsSmartPlayList())
         {
             item->m_bIsFolder = true;
         }
@@ -601,7 +602,7 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
         id.TrimRight("/");
         if (id == "virtualpath://upnproot") {
             id += "/";
-            item.reset(new CFileItem((const char*)id, true));
+            item = std::make_shared<CFileItem>((const char*)id, true);
             item->SetLabel("Root");
             item->SetLabelPreformatted(true);
             object = Build(item, true, context, thumb_loader);
@@ -610,7 +611,7 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
             return NPT_FAILURE;
         }
     } else {
-        item.reset(new CFileItem((const char*)id, false));
+        item = std::make_shared<CFileItem>((const char*)id, false);
 
         // attempt to determine the parent of this item
         std::string parent;
@@ -713,13 +714,13 @@ CUPnPServer::OnBrowseDirectChildren(PLT_ActionReference&          action,
             CFileItemPtr item;
 
             // music library
-            item.reset(new CFileItem("musicdb://", true));
+            item = std::make_shared<CFileItem>("musicdb://", true);
             item->SetLabel("Music Library");
             item->SetLabelPreformatted(true);
             items.Add(item);
 
             // video library
-            item.reset(new CFileItem("library://video/", true));
+            item = std::make_shared<CFileItem>("library://video/", true);
             item->SetLabel("Video Library");
             item->SetLabelPreformatted(true);
             items.Add(item);

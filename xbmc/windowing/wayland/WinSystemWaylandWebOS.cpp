@@ -12,12 +12,23 @@
 #include "OSScreenSaverWebOS.h"
 #include "Registry.h"
 #include "ShellSurfaceWebOSShell.h"
+#include "application/ApplicationComponents.h"
+#include "application/ApplicationPlayer.h"
 #include "cores/AudioEngine/Sinks/AESinkStarfish.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecStarfish.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererStarfish.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
+#include "messaging/ApplicationMessenger.h"
+#include "utils/JSONVariantParser.h"
 #include "utils/log.h"
 
 #include <CompileInfo.h>
+
+namespace
+{
+constexpr const char* LUNA_REGISTER_APP = "luna://com.webos.service.applicationmanager/registerApp";
+} // namespace
 
 namespace KODI::WINDOWING::WAYLAND
 {
@@ -36,6 +47,16 @@ bool CWinSystemWaylandWebOS::InitWindowSystem()
   // available since webOS 5.0
   m_webosRegistry->RequestSingleton(m_webosForeign, 1, 2, false);
   m_webosRegistry->Bind();
+
+  m_requestContext->pub = true;
+  m_requestContext->multiple = true;
+  m_requestContext->callback = &OnAppLifecycleEventWrapper;
+  m_requestContext->userdata = this;
+  if (HLunaServiceCall(LUNA_REGISTER_APP, "{}", m_requestContext.get()))
+  {
+    CLog::LogF(LOGWARNING, "Luna request call failed");
+    m_requestContext = nullptr;
+  }
 
   return true;
 }
@@ -111,6 +132,11 @@ bool CWinSystemWaylandWebOS::SetExportedWindow(CRect orig, CRect src, CRect dest
   return false;
 }
 
+bool CWinSystemWaylandWebOS::SupportsExportedWindow()
+{
+  return m_webosForeign;
+}
+
 IShellSurface* CWinSystemWaylandWebOS::CreateShellSurface(const std::string& name)
 {
   return new CShellSurfaceWebOSShell(*this, *GetConnection(), GetMainSurface(), name,
@@ -120,6 +146,58 @@ IShellSurface* CWinSystemWaylandWebOS::CreateShellSurface(const std::string& nam
 std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> CWinSystemWaylandWebOS::GetOSScreenSaverImpl()
 {
   return std::make_unique<COSScreenSaverWebOS>();
+}
+
+bool CWinSystemWaylandWebOS::OnAppLifecycleEventWrapper(LSHandle* sh, LSMessage* reply, void* ctx)
+{
+  HContext* context = static_cast<HContext*>(ctx);
+  return static_cast<CWinSystemWaylandWebOS*>(context->userdata)->OnAppLifecycleEvent(sh, reply);
+}
+
+void CWinSystemWaylandWebOS::OnConfigure(std::uint32_t serial,
+                                         CSizeInt size,
+                                         IShellSurface::StateBitset state)
+{
+  const auto& components = CServiceBroker::GetAppComponents();
+  const auto player = components.GetComponent<CApplicationPlayer>();
+
+  // intercept minimized event, passing the minimized event causes a weird animation
+  if (state.none())
+  {
+    m_resumePlayback = false;
+
+    if (player->IsPlaying() && player->HasVideo() && !player->IsPaused())
+    {
+      CServiceBroker::GetAppMessenger()->SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1,
+                                                 static_cast<void*>(new CAction(ACTION_PAUSE)));
+      m_resumePlayback = true;
+    }
+  }
+  else
+  {
+    if (m_resumePlayback && player->IsPlaying() && player->HasVideo() && player->IsPaused())
+    {
+      CServiceBroker::GetAppMessenger()->SendMsg(
+          TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PLAYER_PLAY)));
+      m_resumePlayback = false;
+    }
+    CWinSystemWayland::OnConfigure(serial, size, state);
+  }
+}
+
+bool CWinSystemWaylandWebOS::OnAppLifecycleEvent(LSHandle* sh, LSMessage* reply)
+{
+  const char* msg = HLunaServiceMessage(reply);
+  CLog::Log(LOGDEBUG, "Got lifecycle event: {}", msg);
+
+  CVariant event;
+  CJSONVariantParser::Parse(msg, event);
+
+  IShellSurface* shellSurface = GetShellSurface();
+  if (event["event"] == "relaunch" && shellSurface)
+    shellSurface->SetFullScreen(nullptr, 60.0f);
+
+  return true;
 }
 
 } // namespace KODI::WINDOWING::WAYLAND

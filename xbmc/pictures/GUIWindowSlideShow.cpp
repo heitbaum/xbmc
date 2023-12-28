@@ -29,6 +29,7 @@
 #include "interfaces/AnnouncementManager.h"
 #include "pictures/GUIViewStatePictures.h"
 #include "pictures/PictureThumbLoader.h"
+#include "pictures/SlideShowDelegator.h"
 #include "playlists/PlayListTypes.h"
 #include "rendering/RenderSystem.h"
 #include "settings/DisplaySettings.h"
@@ -40,6 +41,7 @@
 #include "utils/XTimeUtils.h"
 #include "utils/log.h"
 
+#include <memory>
 #include <random>
 
 using namespace XFILE;
@@ -143,7 +145,13 @@ CGUIWindowSlideShow::CGUIWindowSlideShow(void)
   m_Resolution = RES_INVALID;
   m_loadType = KEEP_IN_MEMORY;
   m_bLoadNextPic = false;
+  CServiceBroker::GetSlideShowDelegator().SetDelegate(this);
   Reset();
+}
+
+CGUIWindowSlideShow::~CGUIWindowSlideShow()
+{
+  CServiceBroker::GetSlideShowDelegator().ResetDelegate();
 }
 
 void CGUIWindowSlideShow::AnnouncePlayerPlay(const CFileItemPtr& item)
@@ -345,7 +353,7 @@ void CGUIWindowSlideShow::Select(const std::string& strPicture)
 void CGUIWindowSlideShow::GetSlideShowContents(CFileItemList &list)
 {
   for (size_t index = 0; index < m_slides.size(); index++)
-    list.Add(CFileItemPtr(new CFileItem(*m_slides.at(index))));
+    list.Add(std::make_shared<CFileItem>(*m_slides.at(index)));
 }
 
 std::shared_ptr<const CFileItem> CGUIWindowSlideShow::GetCurrentSlide()
@@ -394,7 +402,9 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
 
   // if we haven't processed yet, we should mark the whole screen
   if (!HasProcessed())
-    regions.push_back(CDirtyRegion(CRect(0.0f, 0.0f, (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(), (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight())));
+    regions.emplace_back(CRect(
+        0.0f, 0.0f, static_cast<float>(CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth()),
+        static_cast<float>(CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight())));
 
   if (m_iCurrentSlide < 0 || m_iCurrentSlide >= static_cast<int>(m_slides.size()))
     m_iCurrentSlide = 0;
@@ -404,7 +414,7 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
   // Create our background loader if necessary
   if (!m_pBackgroundLoader)
   {
-    m_pBackgroundLoader.reset(new CBackgroundPicLoader());
+    m_pBackgroundLoader = std::make_unique<CBackgroundPicLoader>();
     m_pBackgroundLoader->Create(this);
   }
 
@@ -477,7 +487,9 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
 
   if (m_bErrorMessage)
   { // hack, just mark it all
-    regions.push_back(CDirtyRegion(CRect(0.0f, 0.0f, (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(), (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight())));
+    regions.emplace_back(CRect(
+        0.0f, 0.0f, static_cast<float>(CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth()),
+        static_cast<float>(CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight())));
     return;
   }
 

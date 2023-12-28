@@ -34,6 +34,7 @@
 #include "utils/log.h"
 
 #include <charconv>
+#include <memory>
 
 #define XML_SETTINGS      "settings"
 #define XML_SETTING       "setting"
@@ -157,7 +158,7 @@ CSkinInfo::CSkinInfo(const AddonInfoPtr& addonInfo,
     m_effectsSlowDown(1.f),
     m_debugging(false)
 {
-  m_settingsUpdateHandler.reset(new CSkinSettingUpdateHandler(*this));
+  m_settingsUpdateHandler = std::make_unique<CSkinSettingUpdateHandler>(*this);
 }
 
 CSkinInfo::CSkinInfo(const AddonInfoPtr& addonInfo) : CAddon(addonInfo, AddonType::SKIN)
@@ -193,7 +194,7 @@ CSkinInfo::CSkinInfo(const AddonInfoPtr& addonInfo) : CAddon(addonInfo, AddonTyp
 
   m_debugging = Type(AddonType::SKIN)->GetValue("@debugging").asBoolean();
 
-  m_settingsUpdateHandler.reset(new CSkinSettingUpdateHandler(*this));
+  m_settingsUpdateHandler = std::make_unique<CSkinSettingUpdateHandler>(*this);
   LoadStartupWindows(addonInfo);
 }
 
@@ -285,15 +286,17 @@ void CSkinInfo::LoadIncludes()
 
 void CSkinInfo::LoadTimers()
 {
+  m_skinTimerManager =
+      std::make_unique<CSkinTimerManager>(CServiceBroker::GetGUI()->GetInfoManager());
   const std::string timersPath =
       CSpecialProtocol::TranslatePathConvertCase(GetSkinPath("Timers.xml"));
   CLog::LogF(LOGINFO, "Trying to load skin timers from {}", timersPath);
-  m_skinTimerManager.LoadTimers(timersPath);
+  m_skinTimerManager->LoadTimers(timersPath);
 }
 
 void CSkinInfo::ProcessTimers()
 {
-  m_skinTimerManager.Process();
+  m_skinTimerManager->Process();
 }
 void CSkinInfo::ResolveIncludes(TiXmlElement* node,
                                 std::map<INFO::InfoPtr, bool>* xmlIncludeConditions /* = nullptr */)
@@ -418,27 +421,27 @@ void CSkinInfo::OnPostInstall(bool update, bool modal)
 
 void CSkinInfo::Unload()
 {
-  m_skinTimerManager.Stop();
+  m_skinTimerManager->Stop();
 }
 
 bool CSkinInfo::TimerIsRunning(const std::string& timer) const
 {
-  return m_skinTimerManager.TimerIsRunning(timer);
+  return m_skinTimerManager->TimerIsRunning(timer);
 }
 
 float CSkinInfo::GetTimerElapsedSeconds(const std::string& timer) const
 {
-  return m_skinTimerManager.GetTimerElapsedSeconds(timer);
+  return m_skinTimerManager->GetTimerElapsedSeconds(timer);
 }
 
 void CSkinInfo::TimerStart(const std::string& timer) const
 {
-  m_skinTimerManager.TimerStart(timer);
+  m_skinTimerManager->TimerStart(timer);
 }
 
 void CSkinInfo::TimerStop(const std::string& timer) const
 {
-  m_skinTimerManager.TimerStop(timer);
+  m_skinTimerManager->TimerStop(timer);
 }
 
 void CSkinInfo::SettingOptionsSkinColorsFiller(const SettingConstPtr& setting,

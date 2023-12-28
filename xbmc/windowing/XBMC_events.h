@@ -17,12 +17,14 @@ typedef enum
   XBMC_NOEVENT = 0, /* Unused (do not remove) */
   XBMC_KEYDOWN, /* Keys pressed */
   XBMC_KEYUP, /* Keys released */
+  XBMC_KEYCOMPOSING_COMPOSING, /* A composed key (sequence) is under processing */
+  XBMC_KEYCOMPOSING_FINISHED, /* A composed key is finished */
+  XBMC_KEYCOMPOSING_CANCELLED, /* A composed key is cancelled */
   XBMC_MOUSEMOTION, /* Mouse moved */
   XBMC_MOUSEBUTTONDOWN, /* Mouse button pressed */
   XBMC_MOUSEBUTTONUP, /* Mouse button released */
   XBMC_QUIT, /* User-requested quit */
   XBMC_VIDEORESIZE, /* User resized video mode */
-  XBMC_FULLSCREEN_UPDATE, /* Triggered by an OS event when Kodi is running in fullscreen, rescale and repositioning is required  */
   XBMC_SCREENCHANGE, /* Window moved to a different screen */
   XBMC_VIDEOMOVE, /* User moved the window */
   XBMC_MODECHANGE, /* Video mode must be changed */

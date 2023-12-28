@@ -15,6 +15,7 @@
 #include "cores/VideoPlayer/DVDFileInfo.h"
 #include "cores/VideoSettings.h"
 #include "filesystem/Directory.h"
+#include "filesystem/File.h"
 #include "filesystem/StackDirectory.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/StereoscopicsManager.h"
@@ -36,56 +37,6 @@
 
 using namespace XFILE;
 using namespace VIDEO;
-
-CChapterThumbExtractor::CChapterThumbExtractor(const CFileItem& item,
-                                               const std::string& listpath,
-                                               const std::string& target,
-                                               int64_t pos)
-  : m_target(target), m_listpath(listpath), m_item(item)
-{
-  m_pos = pos;
-
-  if (item.IsVideoDb() && item.HasVideoInfoTag())
-    m_item.SetPath(item.GetVideoInfoTag()->m_strFileNameAndPath);
-
-  if (m_item.IsStack())
-    m_item.SetPath(CStackDirectory::GetFirstStackedFile(m_item.GetPath()));
-}
-
-CChapterThumbExtractor::~CChapterThumbExtractor() = default;
-
-bool CChapterThumbExtractor::operator==(const CJob* job) const
-{
-  if (strcmp(job->GetType(),GetType()) == 0)
-  {
-    const CChapterThumbExtractor* jobExtract = dynamic_cast<const CChapterThumbExtractor*>(job);
-    if (jobExtract && jobExtract->m_listpath == m_listpath
-                   && jobExtract->m_target == m_target)
-      return true;
-  }
-  return false;
-}
-
-bool CChapterThumbExtractor::DoWork()
-{
-  if (!CDVDFileInfo::CanExtract(m_item))
-    return false;
-
-  bool result=false;
-  CLog::LogF(LOGDEBUG, "trying to extract thumb from video file {}",
-             CURL::GetRedacted(m_item.GetPath()));
-  // construct the thumb cache file
-  CTextureDetails details;
-  details.file = CTextureCache::GetCacheFile(m_target) + ".jpg";
-  result = CDVDFileInfo::ExtractThumb(m_item, details, m_pos);
-  if (!result)
-    return false;
-
-  CServiceBroker::GetTextureCache()->AddCachedTexture(m_target, details);
-  m_item.SetArt("thumb", m_target);
-
-  return true;
-}
 
 CVideoThumbLoader::CVideoThumbLoader() : CThumbLoader()
 {
@@ -125,13 +76,14 @@ std::vector<std::string> GetSettingListAsString(const std::string& settingID)
 }
 
 const std::map<std::string, std::vector<std::string>> artTypeDefaults = {
-  {MediaTypeEpisode, {"thumb"}},
-  {MediaTypeTvShow, {"poster", "fanart", "banner"}},
-  {MediaTypeSeason, {"poster", "fanart", "banner"}},
-  {MediaTypeMovie, {"poster", "fanart"}},
-  {MediaTypeVideoCollection, {"poster", "fanart"}},
-  {MediaTypeMusicVideo, {"poster", "fanart"}},
-  {MediaTypeNone, { "poster", "fanart", "banner", "thumb" }},
+    {MediaTypeEpisode, {"thumb"}},
+    {MediaTypeTvShow, {"poster", "fanart", "banner"}},
+    {MediaTypeSeason, {"poster", "fanart", "banner"}},
+    {MediaTypeMovie, {"poster", "fanart"}},
+    {MediaTypeVideoCollection, {"poster", "fanart"}},
+    {MediaTypeMusicVideo, {"poster", "fanart"}},
+    {MediaTypeVideoVersion, {"poster", "fanart", "banner", "thumb"}},
+    {MediaTypeNone, {"poster", "fanart", "banner", "thumb"}},
 };
 
 const std::vector<std::string> artTypeDefaultsFallback = {};
@@ -145,12 +97,13 @@ const std::vector<std::string>& GetArtTypeDefault(const std::string& mediaType)
 }
 
 const std::map<std::string, std::string> artTypeSettings = {
-  {MediaTypeEpisode, CSettings::SETTING_VIDEOLIBRARY_EPISODEART_WHITELIST},
-  {MediaTypeTvShow, CSettings::SETTING_VIDEOLIBRARY_TVSHOWART_WHITELIST},
-  {MediaTypeSeason, CSettings::SETTING_VIDEOLIBRARY_TVSHOWART_WHITELIST},
-  {MediaTypeMovie, CSettings::SETTING_VIDEOLIBRARY_MOVIEART_WHITELIST},
-  {MediaTypeVideoCollection, CSettings::SETTING_VIDEOLIBRARY_MOVIEART_WHITELIST},
-  {MediaTypeMusicVideo, CSettings::SETTING_VIDEOLIBRARY_MUSICVIDEOART_WHITELIST},
+    {MediaTypeEpisode, CSettings::SETTING_VIDEOLIBRARY_EPISODEART_WHITELIST},
+    {MediaTypeTvShow, CSettings::SETTING_VIDEOLIBRARY_TVSHOWART_WHITELIST},
+    {MediaTypeSeason, CSettings::SETTING_VIDEOLIBRARY_TVSHOWART_WHITELIST},
+    {MediaTypeMovie, CSettings::SETTING_VIDEOLIBRARY_MOVIEART_WHITELIST},
+    {MediaTypeVideoCollection, CSettings::SETTING_VIDEOLIBRARY_MOVIEART_WHITELIST},
+    {MediaTypeMusicVideo, CSettings::SETTING_VIDEOLIBRARY_MUSICVIDEOART_WHITELIST},
+    {MediaTypeVideoVersion, CSettings::SETTING_VIDEOLIBRARY_MOVIEART_WHITELIST},
 };
 } // namespace
 
@@ -238,11 +191,12 @@ bool CVideoThumbLoader::LoadItemCached(CFileItem* pItem)
   {
     FillLibraryArt(*pItem);
 
-    if (!pItem->GetVideoInfoTag()->m_type.empty()                &&
-         pItem->GetVideoInfoTag()->m_type != MediaTypeMovie      &&
-         pItem->GetVideoInfoTag()->m_type != MediaTypeTvShow     &&
-         pItem->GetVideoInfoTag()->m_type != MediaTypeEpisode    &&
-         pItem->GetVideoInfoTag()->m_type != MediaTypeMusicVideo)
+    if (!pItem->GetVideoInfoTag()->m_type.empty() &&
+        pItem->GetVideoInfoTag()->m_type != MediaTypeMovie &&
+        pItem->GetVideoInfoTag()->m_type != MediaTypeTvShow &&
+        pItem->GetVideoInfoTag()->m_type != MediaTypeEpisode &&
+        pItem->GetVideoInfoTag()->m_type != MediaTypeMusicVideo &&
+        pItem->GetVideoInfoTag()->m_type != MediaTypeVideoVersion)
     {
       m_videoDatabase->Close();
       return true; // nothing else to be done
@@ -276,12 +230,12 @@ bool CVideoThumbLoader::LoadItemLookup(CFileItem* pItem)
   if (pItem->m_bIsShareOrDrive || pItem->IsParentFolder() || pItem->GetPath() == "add")
     return false;
 
-  if (pItem->HasVideoInfoTag()                                &&
-     !pItem->GetVideoInfoTag()->m_type.empty()                &&
-      pItem->GetVideoInfoTag()->m_type != MediaTypeMovie      &&
-      pItem->GetVideoInfoTag()->m_type != MediaTypeTvShow     &&
-      pItem->GetVideoInfoTag()->m_type != MediaTypeEpisode    &&
-      pItem->GetVideoInfoTag()->m_type != MediaTypeMusicVideo)
+  if (pItem->HasVideoInfoTag() && !pItem->GetVideoInfoTag()->m_type.empty() &&
+      pItem->GetVideoInfoTag()->m_type != MediaTypeMovie &&
+      pItem->GetVideoInfoTag()->m_type != MediaTypeTvShow &&
+      pItem->GetVideoInfoTag()->m_type != MediaTypeEpisode &&
+      pItem->GetVideoInfoTag()->m_type != MediaTypeMusicVideo &&
+      pItem->GetVideoInfoTag()->m_type != MediaTypeVideoVersion)
     return false; // Nothing to do here
 
   m_videoDatabase->Open();
@@ -533,10 +487,14 @@ std::string CVideoThumbLoader::GetLocalArt(const CFileItem &item, const std::str
      thumbloader thread accesses the streamed filesystem at the same time as the
      app thread and the latter has to wait for it.
    */
-  if (item.m_bIsFolder &&
-      (item.IsStreamedFilesystem() ||
-       CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_cacheBufferMode ==
-           CACHE_BUFFER_MODE_ALL))
+
+  const auto settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+
+  const bool cacheAll =
+      settings ? settings->GetInt(CSettings::SETTING_FILECACHE_BUFFERMODE) == CACHE_BUFFER_MODE_ALL
+               : false;
+
+  if (item.m_bIsFolder && (item.IsStreamedFilesystem() || cacheAll))
   {
     CFileItemList items; // Dummy list
     CDirectory::GetDirectory(item.GetPath(), items, "", DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);

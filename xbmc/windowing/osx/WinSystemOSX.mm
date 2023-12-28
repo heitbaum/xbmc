@@ -40,6 +40,7 @@
 
 #include <array>
 #include <chrono>
+#include <memory>
 #include <mutex>
 
 #import <IOKit/graphics/IOGraphicsLib.h>
@@ -583,7 +584,7 @@ CWinSystemOSX::CWinSystemOSX() : CWinSystemBase(), m_lostDeviceTimer(this)
   m_refreshRate = 0.0;
   m_delayDispReset = false;
 
-  m_winEvents.reset(new CWinEventsOSX());
+  m_winEvents = std::make_unique<CWinEventsOSX>();
 
   AE::CAESinkFactory::ClearSinks();
   CAESinkDARWINOSX::Register();
@@ -1345,7 +1346,7 @@ std::unique_ptr<CVideoSync> CWinSystemOSX::GetVideoSync(CVideoReferenceClock* cl
 std::vector<std::string> CWinSystemOSX::GetConnectedOutputs()
 {
   std::vector<std::string> outputs;
-  outputs.push_back(DEFAULT_SCREEN_NAME);
+  outputs.emplace_back(DEFAULT_SCREEN_NAME);
 
   // screen 0 is always the "Default" setting, avoid duplicating the available
   // screens here.
@@ -1355,7 +1356,7 @@ std::vector<std::string> CWinSystemOSX::GetConnectedOutputs()
     for (NSUInteger disp = 1; disp <= numDisplays - 1; disp++)
     {
       NSString* const dispName = screenNameForDisplay(disp);
-      outputs.push_back(dispName.UTF8String);
+      outputs.emplace_back(dispName.UTF8String);
     }
   }
 
@@ -1379,11 +1380,13 @@ bool CWinSystemOSX::MessagePump()
 void CWinSystemOSX::enableInputEvents()
 {
   m_winEvents->enableInputEvents();
+  signalMouseEntered();
 }
 
 void CWinSystemOSX::disableInputEvents()
 {
   m_winEvents->disableInputEvents();
+  signalMouseExited();
 }
 
 std::string CWinSystemOSX::GetClipboardText()

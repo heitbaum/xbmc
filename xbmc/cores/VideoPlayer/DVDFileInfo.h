@@ -23,10 +23,8 @@ class CTextureDetails;
 class CDVDFileInfo
 {
 public:
-  // Extract a thumbnail image from the media referenced by fileItem
-  static bool ExtractThumb(const CFileItem& fileItem, CTextureDetails& details, int64_t pos);
-
-  static std::unique_ptr<CTexture> ExtractThumbToTexture(const CFileItem& fileItem);
+  static std::unique_ptr<CTexture> ExtractThumbToTexture(const CFileItem& fileItem,
+                                                         int chapterNumber = 0);
 
   /*!
    * @brief Can a thumbnail image and file stream details be extracted from this file item?
@@ -56,4 +54,10 @@ private:
   *   \param[out] details The external subtitle file's StreamDetails.
   */
   static bool AddExternalSubtitleToDetails(const std::string &path, CStreamDetails &details, const std::string& filename, const std::string& subfilename = "");
+
+  /** \brief Checks external subtitles for a given item and adds any existing ones to the item stream details
+  *   \param item The video item
+  *   \sa AddExternalSubtitleToDetails
+  */
+  static void ProcessExternalSubtitles(CFileItem* item);
 };

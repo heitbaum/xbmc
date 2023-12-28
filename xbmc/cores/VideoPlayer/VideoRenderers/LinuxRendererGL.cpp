@@ -33,11 +33,15 @@
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
 
-#include <locale.h>
-#include <mutex>
-
 #ifdef TARGET_DARWIN_OSX
 #include "platform/darwin/osx/CocoaInterface.h"
+#endif
+
+#include <locale.h>
+#include <memory>
+#include <mutex>
+
+#if defined(TARGET_DARWIN_OSX)
 #include <CoreVideo/CoreVideo.h>
 #include <OpenGL/CGLIOSurface.h>
 #endif
@@ -119,7 +123,7 @@ CLinuxRendererGL::CLinuxRendererGL()
   m_fbo.width = 0.0;
   m_fbo.height = 0.0;
 
-  m_ColorManager.reset(new CColorManager());
+  m_ColorManager = std::make_unique<CColorManager>();
   m_tCLUTTex = 0;
   m_CLUT = NULL;
   m_CLUTsize = 0;
@@ -210,7 +214,7 @@ bool CLinuxRendererGL::Configure(const VideoPicture &picture, float fps, unsigne
   m_iFlags = GetFlagsChromaPosition(picture.chroma_position) |
              GetFlagsStereoMode(picture.stereoMode);
 
-  m_srcPrimaries = GetSrcPrimaries(picture.color_primaries, picture.iWidth, picture.iHeight);
+  m_srcPrimaries = picture.color_primaries;
   m_toneMap = false;
 
   // Calculate the input frame aspect ratio.
@@ -2713,10 +2717,9 @@ void CLinuxRendererGL::CheckVideoParameters(int index)
   const CPictureBuffer& buf = m_buffers[index];
   ETONEMAPMETHOD method = m_videoSettings.m_ToneMapMethod;
 
-  AVColorPrimaries srcPrim = GetSrcPrimaries(buf.m_srcPrimaries, buf.image.width, buf.image.height);
-  if (srcPrim != m_srcPrimaries)
+  if (buf.m_srcPrimaries != m_srcPrimaries)
   {
-    m_srcPrimaries = srcPrim;
+    m_srcPrimaries = buf.m_srcPrimaries;
     m_reloadShaders = true;
   }
 
@@ -2735,19 +2738,6 @@ void CLinuxRendererGL::CheckVideoParameters(int index)
   }
   m_toneMap = toneMap;
   m_toneMapMethod = method;
-}
-
-AVColorPrimaries CLinuxRendererGL::GetSrcPrimaries(AVColorPrimaries srcPrimaries, unsigned int width, unsigned int height)
-{
-  AVColorPrimaries ret = srcPrimaries;
-  if (ret == AVCOL_PRI_UNSPECIFIED)
-  {
-    if (width > 1024 || height >= 600)
-      ret = AVCOL_PRI_BT709;
-    else
-      ret = AVCOL_PRI_BT470BG;
-  }
-  return ret;
 }
 
 CRenderCapture* CLinuxRendererGL::GetRenderCapture()

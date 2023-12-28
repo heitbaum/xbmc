@@ -27,6 +27,9 @@ namespace GAME
 class CController;
 class IActivePortList;
 
+/*!
+ * \ingroup games
+ */
 class CGUIActivePortList : public IActivePortList, public Observer
 {
 public:
@@ -50,7 +53,7 @@ private:
   void DeinitializeGUI();
   void AddInputDisabled();
   void AddItems(const PortVec& ports);
-  void AddItem(ControllerPtr controller, const std::string& controllerAddress);
+  void AddItem(const ControllerPtr& controller, const std::string& controllerAddress);
   void AddPadding();
   void CleanupItems();
 

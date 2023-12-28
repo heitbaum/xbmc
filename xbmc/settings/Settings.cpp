@@ -43,6 +43,7 @@
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
+#include "settings/ServicesSettings.h"
 #include "settings/SettingConditions.h"
 #include "settings/SettingsComponent.h"
 #include "settings/SkinSettings.h"
@@ -436,6 +437,16 @@ void CSettings::InitializeOptionFillers()
   GetSettingsManager()->RegisterSettingOptionsFiller("timezones", CPosixTimezone::SettingOptionsTimezonesFiller);
 #endif
   GetSettingsManager()->RegisterSettingOptionsFiller("keyboardlayouts", CKeyboardLayoutManager::SettingOptionsKeyboardLayoutsFiller);
+  GetSettingsManager()->RegisterSettingOptionsFiller(
+      "filechunksizes", CServicesSettings::SettingOptionsChunkSizesFiller);
+  GetSettingsManager()->RegisterSettingOptionsFiller(
+      "filecachebuffermodes", CServicesSettings::SettingOptionsBufferModesFiller);
+  GetSettingsManager()->RegisterSettingOptionsFiller(
+      "filecachememorysizes", CServicesSettings::SettingOptionsMemorySizesFiller);
+  GetSettingsManager()->RegisterSettingOptionsFiller(
+      "filecachereadfactors", CServicesSettings::SettingOptionsReadFactorsFiller);
+  GetSettingsManager()->RegisterSettingOptionsFiller(
+      "filecachechunksizes", CServicesSettings::SettingOptionsCacheChunkSizesFiller);
 }
 
 void CSettings::UninitializeOptionFillers()
@@ -482,6 +493,11 @@ void CSettings::UninitializeOptionFillers()
 #endif // defined(TARGET_LINUX)
   GetSettingsManager()->UnregisterSettingOptionsFiller("verticalsyncs");
   GetSettingsManager()->UnregisterSettingOptionsFiller("keyboardlayouts");
+  GetSettingsManager()->UnregisterSettingOptionsFiller("filechunksizes");
+  GetSettingsManager()->UnregisterSettingOptionsFiller("filecachebuffermodes");
+  GetSettingsManager()->UnregisterSettingOptionsFiller("filecachememorysizes");
+  GetSettingsManager()->UnregisterSettingOptionsFiller("filecachereadfactors");
+  GetSettingsManager()->UnregisterSettingOptionsFiller("filecachechunksizes");
 }
 
 void CSettings::InitializeConditions()

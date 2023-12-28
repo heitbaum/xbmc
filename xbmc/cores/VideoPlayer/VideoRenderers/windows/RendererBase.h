@@ -76,6 +76,7 @@ public:
   AVPixelFormat av_format;
   CVideoBuffer* videoBuffer = nullptr;
   unsigned int pictureFlags = 0;
+  AVColorPrimaries m_originalPrimaries = AVCOL_PRI_BT709;
   AVColorPrimaries primaries = AVCOL_PRI_BT709;
   AVColorSpace color_space = AVCOL_SPC_BT709;
   AVColorTransferCharacteristic color_transfer = AVCOL_TRC_BT709;
@@ -115,6 +116,8 @@ public:
   virtual CRenderInfo GetRenderInfo();
   virtual bool Configure(const VideoPicture &picture, float fps, unsigned int orientation);
   virtual bool Supports(ESCALINGMETHOD method) const = 0;
+  virtual bool Supports(ERENDERFEATURE feature) const;
+
   virtual bool WantsDoublePass() { return false; }
   virtual bool NeedBuffer(int idx) { return false; }
 

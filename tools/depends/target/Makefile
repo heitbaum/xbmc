@@ -23,7 +23,6 @@ DEPENDS = \
   harfbuzz \
   libass \
   libbluray \
-  libcec \
   libffi \
   libgcrypt \
   libgpg-error \
@@ -40,7 +39,6 @@ DEPENDS = \
   nettle \
   nghttp2 \
   openssl \
-  p8-platform \
   python3 \
   pythonmodule-pil \
   pythonmodule-pycryptodome \
@@ -57,9 +55,8 @@ else
 endif
 
 ifeq ($(OS),darwin_embedded)
-  EXCLUDED_DEPENDS = libcec libusb gtest
+  EXCLUDED_DEPENDS = libusb gtest
   ifeq ($(TARGET_PLATFORM),appletvos)
-    DEPENDS += boblight
     EXCLUDED_DEPENDS += libshairplay libplist
   endif
   DEPENDS += darwin-embedded-entitlements
@@ -67,16 +64,12 @@ endif
 
 ifeq ($(OS),osx)
   EXCLUDED_DEPENDS = libusb
-  ifneq ($(CPU),arm64)
-    ifeq ($(WINDOW_SYSTEM),sdl)
-      DEPENDS += libsdl
-    endif
-  endif
+  DEPENDS += smctemp
 endif
 
 ifeq ($(OS),android)
-  EXCLUDED_DEPENDS = libcec libusb gtest
-  DEPENDS += dummy-libxbmc libuuid
+  EXCLUDED_DEPENDS = libusb gtest
+  DEPENDS += dummy-libxbmc libdovi libuuid
   PYMODULE_DEPS = dummy-libxbmc
   LIBUUID = libuuid
 endif
@@ -157,7 +150,7 @@ $(DOWNLOAD_TARGETS):
 download: $(DOWNLOAD_TARGETS)
 
 crossguid: $(LIBUUID)
-curl: openssl nghttp2
+curl: openssl nghttp2 $(ZLIB)
 dbus: expat
 ffmpeg: $(ICONV) $(ZLIB) bzip2 gnutls dav1d $(LIBVA)
 fontconfig: freetype2 expat $(ICONV) $(LIBUUID)
@@ -169,7 +162,6 @@ libass: fontconfig fribidi harfbuzz libpng freetype2 expat $(ICONV)
 libbluray: fontconfig freetype2 $(ICONV) udfread libxml2
 libcdio-gplv3: $(ICONV)
 libcdio: $(ICONV)
-libcec: p8-platform
 libdisplay-info: hwdata
 libevdev: libudev
 libgcrypt: libgpg-error
@@ -182,7 +174,7 @@ libxml2: $(ZLIB)
 libxslt: libgcrypt libxml2
 libzip: bzip2 gnutls $(ZLIB)
 mariadb: openssl $(ICONV) $(ZLIB)
-mesa: libdrm $(MESA_DEPS)
+mesa: libdrm $(MESA_DEPS) $(ZLIB)
 nettle: gmp
 openssl: $(ZLIB)
 python3: expat gettext libxml2 sqlite3 openssl libffi bzip2 xz $(ICONV)

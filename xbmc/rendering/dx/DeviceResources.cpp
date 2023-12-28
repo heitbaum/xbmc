@@ -131,6 +131,28 @@ void DX::DeviceResources::GetOutput(IDXGIOutput** ppOutput) const
   *ppOutput = pOutput.Detach();
 }
 
+void DX::DeviceResources::GetCachedOutputAndDesc(IDXGIOutput** ppOutput,
+                                                 DXGI_OUTPUT_DESC* outputDesc) const
+{
+  ComPtr<IDXGIOutput> pOutput;
+  if (m_output)
+  {
+    m_output.As(&pOutput);
+    *outputDesc = m_outputDesc;
+  }
+  else if (m_swapChain && SUCCEEDED(m_swapChain->GetContainingOutput(pOutput.GetAddressOf())) &&
+           pOutput)
+  {
+    pOutput->GetDesc(outputDesc);
+  }
+
+  if (!pOutput)
+    CLog::LogF(LOGWARNING, "unable to retrieve current output");
+
+  *ppOutput = pOutput.Detach();
+  return;
+}
+
 DXGI_ADAPTER_DESC DX::DeviceResources::GetAdapterDesc() const
 {
   DXGI_ADAPTER_DESC desc{};
@@ -729,7 +751,6 @@ void DX::DeviceResources::ResizeBuffers()
     ComPtr<IDXGIDevice1> dxgiDevice;
     hr = m_d3dDevice.As(&dxgiDevice); CHECK_ERR();
     dxgiDevice->SetMaximumFrameLatency(1);
-    m_usedSwapChain = false;
 
     if (m_IsHDROutput)
       SetHdrColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
@@ -960,7 +981,6 @@ void DX::DeviceResources::HandleDeviceLost(bool removed)
 bool DX::DeviceResources::Begin()
 {
   HRESULT hr = m_swapChain->Present(0, DXGI_PRESENT_TEST);
-  m_usedSwapChain = true;
 
   // If the device was removed either by a disconnection or a driver upgrade, we
   // must recreate all device resources.
@@ -992,7 +1012,6 @@ void DX::DeviceResources::Present()
   // frames that will never be displayed to the screen.
   DXGI_PRESENT_PARAMETERS parameters = {};
   HRESULT hr = m_swapChain->Present1(1, 0, &parameters);
-  m_usedSwapChain = true;
 
   // If the device was removed either by a disconnection or a driver upgrade, we
   // must recreate all device resources.
@@ -1048,6 +1067,7 @@ void DX::DeviceResources::HandleOutputChange(const std::function<bool(DXGI_OUTPU
       if (cmpFunc(outputDesc))
       {
         output.As(&m_output);
+        m_outputDesc = outputDesc;
         // check if adapter is changed
         if (currentDesc.AdapterLuid.HighPart != foundDesc.AdapterLuid.HighPart
           || currentDesc.AdapterLuid.LowPart != foundDesc.AdapterLuid.LowPart)
@@ -1184,7 +1204,7 @@ VideoDriverInfo DX::DeviceResources::GetVideoDriverVersion()
 {
   const DXGI_ADAPTER_DESC ad = GetAdapterDesc();
 
-  VideoDriverInfo driver = CWIN32Util::GetVideoDriverInfo(ad.VendorId, ad.Description);
+  const VideoDriverInfo driver = CWIN32Util::GetVideoDriverInfo(ad.VendorId, ad.Description);
 
   if (ad.VendorId == PCIV_NVIDIA)
     CLog::LogF(LOGINFO, "video driver version is {} {}.{} ({})", GetGFXProviderName(ad.VendorId),
@@ -1311,23 +1331,6 @@ void DX::DeviceResources::SetHdrColorSpace(const DXGI_COLOR_SPACE_TYPE colorSpac
 
   if (SUCCEEDED(m_swapChain.As(&swapChain3)))
   {
-    // Set the color space on a new swap chain - not mandated by MS documentation but needed
-    // at least for some AMD on Windows 10, at least up to driver 31.0.21001.45002
-    // Applying to AMD only because it breaks refresh rate switching in Windows 11 for Intel and
-    // nVidia and they don't need the workaround.
-    if (m_usedSwapChain &&
-        m_IsTransferPQ != (colorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020))
-    {
-      if (GetAdapterDesc().VendorId == PCIV_AMD)
-      {
-        // Temporary release, can't hold references during swap chain re-creation
-        swapChain3 = nullptr;
-        DestroySwapChain();
-        CreateWindowSizeDependentResources();
-        m_swapChain.As(&swapChain3);
-      }
-    }
-
     if (SUCCEEDED(swapChain3->SetColorSpace1(colorSpace)))
     {
       m_IsTransferPQ = (colorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
@@ -1351,6 +1354,11 @@ HDR_STATUS DX::DeviceResources::ToggleHDR()
   DXGI_MODE_DESC md = {};
   GetDisplayMode(&md);
 
+  // Xbox uses only full screen windowed mode and not needs recreate swapchain.
+  // Recreate swapchain causes native 4K resolution is lost and quality obtained
+  // is equivalent to 1080p upscaled to 4K (TO DO: investigate root cause).
+  const bool isXbox = (CSysInfo::GetWindowsDeviceFamily() == CSysInfo::Xbox);
+
   DX::Windowing()->SetTogglingHDR(true);
   DX::Windowing()->SetAlteringWindow(true);
 
@@ -1358,7 +1366,7 @@ HDR_STATUS DX::DeviceResources::ToggleHDR()
   HDR_STATUS hdrStatus = CWIN32Util::ToggleWindowsHDR(md);
 
   // Kill swapchain
-  if (m_swapChain && hdrStatus != HDR_STATUS::HDR_TOGGLE_FAILED)
+  if (!isXbox && m_swapChain && hdrStatus != HDR_STATUS::HDR_TOGGLE_FAILED)
   {
     CLog::LogF(LOGDEBUG, "Re-create swapchain due HDR <-> SDR switch");
     DestroySwapChain();
@@ -1367,11 +1375,26 @@ HDR_STATUS DX::DeviceResources::ToggleHDR()
   DX::Windowing()->SetAlteringWindow(false);
 
   // Re-create swapchain
-  if (hdrStatus != HDR_STATUS::HDR_TOGGLE_FAILED)
+  if (!isXbox && hdrStatus != HDR_STATUS::HDR_TOGGLE_FAILED)
   {
     CreateWindowSizeDependentResources();
 
     DX::Windowing()->NotifyAppFocusChange(true);
+  }
+
+  // On Xbox set new color space in same swapchain
+  if (isXbox && hdrStatus != HDR_STATUS::HDR_TOGGLE_FAILED)
+  {
+    if (hdrStatus == HDR_STATUS::HDR_ON)
+    {
+      SetHdrColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+      m_IsHDROutput = true;
+    }
+    else
+    {
+      SetHdrColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+      m_IsHDROutput = false;
+    }
   }
 
   return hdrStatus;
@@ -1460,4 +1483,22 @@ bool DX::DeviceResources::SetMultithreadProtected(bool enabled) const
     wasEnabled = multithread->SetMultithreadProtected(enabled ? TRUE : FALSE);
 
   return (wasEnabled == TRUE ? true : false);
+}
+
+bool DX::DeviceResources::IsGCNOrOlder() const
+{
+  if (CSysInfo::GetWindowsDeviceFamily() == CSysInfo::Xbox)
+    return false;
+
+  const DXGI_ADAPTER_DESC ad = GetAdapterDesc();
+
+  if (ad.VendorId != PCIV_AMD)
+    return false;
+
+  const VideoDriverInfo driver = CWIN32Util::GetVideoDriverInfo(ad.VendorId, ad.Description);
+
+  if (driver.valid && CWIN32Util::IsDriverVersionAtLeast(driver.version, "31.0.22000.0"))
+    return false;
+
+  return true;
 }

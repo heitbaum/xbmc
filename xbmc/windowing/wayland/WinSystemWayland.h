@@ -45,8 +45,8 @@ class CRegistry;
 class CWindowDecorator;
 
 class CWinSystemWayland : public CWinSystemBase,
-                          IInputHandler,
-                          IWindowDecorationHandler,
+                          public IInputHandler,
+                          public IWindowDecorationHandler,
                           public IShellSurfaceHandler
 {
 public:
@@ -111,11 +111,16 @@ protected:
   {
     return m_surface;
   }
+  IShellSurface* GetShellSurface() { return m_shellSurface.get(); }
 
   void PrepareFramePresentation();
   void FinishFramePresentation();
   virtual void SetContextSize(CSizeInt size) = 0;
   virtual IShellSurface* CreateShellSurface(const std::string& name);
+
+  // IShellSurfaceHandler
+  void OnConfigure(std::uint32_t serial, CSizeInt size, IShellSurface::StateBitset state) override;
+  void OnClose() override;
 
 private:
   // IInputHandler
@@ -131,10 +136,6 @@ private:
   void OnWindowClose() override;
   void OnWindowMaximize() override;
   void OnWindowMinimize() override;
-
-  // IShellSurfaceHandler
-  void OnConfigure(std::uint32_t serial, CSizeInt size, IShellSurface::StateBitset state) override;
-  void OnClose() override;
 
   // Registry handlers
   void OnSeatAdded(std::uint32_t name, wayland::proxy_t&& seat);
