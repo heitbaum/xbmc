@@ -464,6 +464,7 @@ msgctxt "#117"
 msgid "Delete"
 msgstr ""
 
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 #: xbmc/favourites/ContextMenus.h
 #: xbmc/favourites/GUIDialogFavourites.cpp
 #: xbmc/pvr/PVRContextMenus.cpp
@@ -950,6 +951,7 @@ msgstr ""
 
 #. generic "play" (some sort of media) label used in different places
 #: addons/skin.estuary/xml/DialogVideoInfo.xml
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 #: addons/skin.estuary/xml/SkinSettings.xml
 #: addons/skin.estuary/xml/Variables.xml
 #: xbmc/dialogs/GUIDialogPlayEject.cpp
@@ -2071,7 +2073,7 @@ msgid "Remove movie from library"
 msgstr ""
 
 msgctxt "#433"
-msgid "Would you really like to remove '{0:s}' from library?"
+msgid "Would you really like to remove '{0:s}' from the library?"
 msgstr ""
 
 #. From <wind dir.> at <speed> <unit>
@@ -2945,7 +2947,9 @@ msgctxt "#629"
 msgid "View mode"
 msgstr ""
 
+#. Label for stretching the displayed video to its normal size
 #: system/settings/settings.xml
+#: xbmc/games/dialogs/osd/DialogGameStretchMode.cpp
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#630"
 msgid "Normal"
@@ -2957,6 +2961,8 @@ msgctxt "#631"
 msgid "Zoom"
 msgstr ""
 
+#. Label for stretching the displayed video to a 4:3 aspect ratio
+#: xbmc/games/dialogs/osd/DialogGameStretchMode.cpp
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#632"
 msgid "Stretch 4:3"
@@ -2968,12 +2974,15 @@ msgctxt "#633"
 msgid "Wide zoom"
 msgstr ""
 
+#. Label for stretching the displayed video to a 16:9 aspect ratio
 #: system/settings/settings.xml
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#634"
 msgid "Stretch 16:9"
 msgstr ""
 
+#. Label for stretching the displayed video to the original size of the video stream
+#: xbmc/games/dialogs/osd/DialogGameStretchMode.cpp
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#635"
 msgid "Original size"
@@ -4890,7 +4899,6 @@ msgctxt "#10004"
 msgid "Settings"
 msgstr ""
 
-#: addons/skin.estouchy/xml/DialogAddonInfo.xml
 #: addons/skin.estuary/xml/DialogPVRRadioRDSInfo.xml
 #: addons/skin.estuary/xml/DialogSeekBar.xml
 #: xbmc/LangInfo.cpp
@@ -5804,61 +5812,51 @@ msgid "Hide password"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12310"
 msgid "0"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12311"
 msgid "1"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12312"
 msgid "2"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12313"
 msgid "3"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12314"
 msgid "4"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12315"
 msgid "5"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12316"
 msgid "6"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12317"
 msgid "7"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12318"
 msgid "8"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogNumeric.xml
-#: addons/skin.estouchy/xml/DialogNumeric.xml
 msgctxt "#12319"
 msgid "9"
 msgstr ""
@@ -6221,9 +6219,6 @@ msgctxt "#13006"
 msgid "Add picture source"
 msgstr ""
 
-#: addons/skin.estouchy/xml/DialogPVRGuideSearch.xml
-#: addons/skin.estouchy/xml/GameOSD.xml
-#: addons/skin.estouchy/xml/DialogGameControllers.xml
 #: addons/skin.estuary/xml/DialogPVRGuideSearch.xml
 #: addons/skin.estuary/xml/GameOSD.xml
 #: addons/skin.estuary/xml/DialogGameControllers.xml
@@ -6255,7 +6250,6 @@ msgid "Suspend"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogButtonMenu.xml
-#: addons/skin.estouchy/xml/Home.xml
 msgctxt "#13012"
 msgid "Exit"
 msgstr ""
@@ -6569,7 +6563,6 @@ msgstr ""
 
 #empty strings from id 13175 to 13199
 
-#: addons/skin.estouchy/xml/SettingsProfile.xml
 #: xbmc/profiles/ProfilesManager.cpp
 #: xbmc/profiles/dialogs/GUIDialogProfileSettings.cpp
 #: addons/skin.estuary/xml/SettingsProfile.xml
@@ -7296,7 +7289,9 @@ msgctxt "#13423"
 msgid "Remember for this path"
 msgstr ""
 
-#empty string with id 13424
+msgctxt "#13424"
+msgid "Choose playlist"
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#13425"
@@ -7563,6 +7558,7 @@ msgctxt "#13510"
 msgid "Sync playback to display"
 msgstr ""
 
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 #: xbmc/music/dialogs/GUIDialogSongInfo.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#13511"
@@ -8084,15 +8080,7 @@ msgctxt "#14078"
 msgid "Colours"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#14079"
-msgid "Timezone country"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#14080"
-msgid "Timezone"
-msgstr ""
+#empty strings from id 14072 to 14073
 
 #: system/settings/settings.xml
 msgctxt "#14081"
@@ -8687,6 +8675,7 @@ msgctxt "#15014"
 msgid "Keep"
 msgstr ""
 
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 #: xbmc/favourites/ContextMenus.h
 #: xbmc/favourites/GUIDialogFavourites.cpp
 #: xbmc/video/VideoDatabase.cpp
@@ -10847,7 +10836,7 @@ msgstr ""
 
 #empty string with id 19221
 
-#: addons/skin.estouchy/xml/Includes.xml
+#: unused?
 msgctxt "#19222"
 msgid "Guide"
 msgstr ""
@@ -11620,13 +11609,37 @@ msgctxt "#19349"
 msgid "User preference"
 msgstr ""
 
-#. label for PVR settings use backend channel group order control
+#. label for PVR setting use backend channel group order control
 #: system/settings/settings.xml
 msgctxt "#19350"
 msgid "Use channel group order from backend(s)"
 msgstr ""
 
-#empty strings from id 19351 to 19498
+#. label for PVR settings category for live tv catchup and video on demand
+#: system/settings/settings.xml
+msgctxt "#19351"
+msgid "Catchup / Video On Demand"
+msgstr ""
+
+#. label for PVR setting play next programme automatically in catchup / vod mode
+#: system/settings/settings.xml
+msgctxt "#19352"
+msgid "Play next programme automatically"
+msgstr ""
+
+#. Label of a context menu entry to kick catchup / VOD playback, starting with the selected item, auto playing all following programmes
+#: xbmc/pvr/PVRContextMenuItem.cpp
+msgctxt "#19353"
+msgid "Play programmes from here"
+msgstr ""
+
+#. Label of a context menu entry to kick catchup / VOD playback of only the selected item, not auto playing any following programmes
+#: xbmc/pvr/PVRContextMenuItem.cpp
+msgctxt "#19354"
+msgid "Play only this programme"
+msgstr ""
+
+#empty strings from id 19355 to 19498
 
 #. label for epg genre value
 #: xbmc/pvr/epg/Epg.cpp
@@ -15405,7 +15418,7 @@ msgstr ""
 
 #. Label to denote that there is something 'more'
 #. xbmc/favourites/ContextMenus.h
-#: xbmc/listproviders/DirectoryProvider.cpp
+#: xbmc/guilib/listproviders/DirectoryProvider.cpp
 #: xbmc/video/guilib/VideoSelectActionProcessor.cpp
 #: system/settings/settings.xml
 msgctxt "#22082"
@@ -15749,7 +15762,6 @@ msgid "Version:"
 msgstr ""
 
 #: addons/skin.estuary/xml/DialogAddonInfo.xml
-#: addons/skin.estouchy/xml/DialogAddonInfo.xml
 msgctxt "#24052"
 msgid "Disclaimer"
 msgstr ""
@@ -18594,14 +18606,14 @@ msgid "270°"
 msgstr ""
 
 #. Label of thumbnail in the in-game menu for stretching the video to fullscreen
-#: xbmc/games/dialogs/osd/DialogGameViewMode.h
+#: xbmc/games/dialogs/osd/DialogGameStretchMode.cpp
 msgctxt "#35232"
 msgid "Fullscreen"
 msgstr ""
 
 #. Label of the setting in the in-game menu for stretching the game to fit the monitor
 #: addons/skin.estuary/xml/Custom_1101_SettingsList.xml
-#: xbmc/games/dialogs/osdDialogGameViewMode.cpp
+#: xbmc/games/dialogs/osd/DialogGameStretchMode.cpp
 msgctxt "#35233"
 msgid "Stretch mode"
 msgstr ""
@@ -19203,17 +19215,7 @@ msgctxt "#36116"
 msgid "Choose which character set is used for displaying text in the user interface. This doesn't change the character set used for subtitles, for that go to Player > Language."
 msgstr ""
 
-#. Description of setting with label #14079 "Timezone country"
-#: system/settings/settings.xml
-msgctxt "#36117"
-msgid "Select country location."
-msgstr ""
-
-#. Description of setting with label #14080 "Timezone"
-#: system/settings/settings.xml
-msgctxt "#36118"
-msgid "Select your current timezone."
-msgstr ""
+#empty strings from id 36117 to 36118
 
 #. Description of setting with label #285 "Preferred audio language"
 #: system/settings/settings.xml
@@ -20231,7 +20233,7 @@ msgstr ""
 #. Description of setting with label #13436 "Adjust display HDR mode"
 #: system/settings/settings.xml
 msgctxt "#36299"
-msgid "Allow the HDR mode of the display to be changed to best match the media.[CR]When disabled, Kodi applies tonemapping as needed to adapt the media to the current HDR mode of the display."
+msgid "Allow the HDR mode of the display to be changed to best match the media. When disabled, Kodi applies tonemapping if needed (and if supported on your hardware) to adapt the media to the current HDR mode of the display."
 msgstr ""
 
 #. Description of setting with label #20226 "Movie set information folder"
@@ -21052,7 +21054,13 @@ msgctxt "#36438"
 msgid "Any repositories"
 msgstr ""
 
-#empty strings from id 36439 to 36441
+#. Description of setting with label #19352 "Play next programme automatically"
+#: system/settings/settings.xml
+msgctxt "#36439"
+msgid "Enable automatic playback of the next programme when playing past programmes (catchup) or for Video On Demand (VOD) channels. Please note that catchup and VOD only work if supported by the channel provider."
+msgstr ""
+
+#empty strings from id 36440 to 36441
 
 #. Description of setting "System -> Audio output -> Volume control steps" with label #1302
 #: system/settings/settings.xml
@@ -22266,7 +22274,7 @@ msgstr ""
 #. Description of setting #37107 "Read Factor"
 #: system/settings/settings.xml
 msgctxt "#37108"
-msgid "The read factor determines cache fill rate in terms of avg. bitrate of stream x Read Factor. Increasing this multiple, cache fills faster but more bandwidth is consumed. Large multiples may cause CPU spikes on some devices, saturate the connection and worsen performance."
+msgid "Determines cache fill rate in terms of avg. bitrate of stream x Read Factor. Increasing this multiple, cache fills faster. Large multiples may cause CPU spikes on some devices, saturate the connection and worsen performance.[CR][Adaptive] Uses dynamically calculated Read Factor based on cache level."
 msgstr ""
 
 #. Description of setting "Chunk Size"
@@ -22305,13 +22313,19 @@ msgctxt "#37114"
 msgid "Buffer all filesystems, including local files"
 msgstr ""
 
-#. Value of setting
+#. Value of setting #37105 "Memory Size"
 #: xbmc/settings/SevicesSettings.cpp
 msgctxt "#37115"
 msgid "Caches entire file on disk storage"
 msgstr ""
 
-#empty strings from id 37116 to 37119
+#. Value of setting #37107 "Read Factor"
+#: xbmc/settings/SevicesSettings.cpp
+msgctxt "#37116"
+msgid "Adaptive"
+msgstr ""
+
+#empty strings from id 37117 to 37119
 
 #. Value of setting - Byte
 #: xbmc/settings/SevicesSettings.cpp
@@ -23735,11 +23749,35 @@ msgctxt "#39197"
 msgid "If enabled, Dolby Vision profile 7 will be converted to profile 8.1, which is more commonly supported by devices. Enable if your device supports Dolby Vision, but has issues with some videos."
 msgstr ""
 
+#. Title of "Allowed HDR dynamic metadata formats" setting
+#: system/settings/settings.xml
+msgctxt "#39198"
+msgid "Allowed HDR dynamic metadata formats"
+msgstr ""
+
+#. Help text for setting "Allowed HDR dynamic metadata formats" of label #39198
+#: system/settings/settings.xml
+msgctxt "#39199"
+msgid "Alters the video bitstream to remove dynamic HDR metadata. Select the HDR formats your device and display supports."
+msgstr ""
+
+#. Label of Dolby Vision option for setting "Allowed HDR dynamic metadata formats" of label #39198
+#: system/settings/settings.xml
+msgctxt "#39200"
+msgid "Dolby Vision"
+msgstr ""
+
+#. Label of HDR10+ option for setting "Allowed HDR dynamic metadata formats" of label #39198
+#: system/settings/settings.xml
+msgctxt "#39201"
+msgid "HDR10+"
+msgstr ""
+
 # 40000 to 40800 are reserved for Video Versions feature
 
+#. Generic video versions label (plural)
 #: xbmc/filesystem/VideoDatabaseDirectory.cpp
 #: xbmc/filesystem/VideoDatabaseDirectory/DirectoryNodeMoviesOverview.cpp
-#: xbmc/video/windows/GUIWindowVideoBase.cpp
 #: addons/skin.estuary/xml/DialogVideoInfo.xml
 msgctxt "#40000"
 msgid "Versions"
@@ -23754,17 +23792,19 @@ msgstr ""
 #. Manage video version dialog title
 #: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
 msgctxt "#40002"
-msgid "Convert into an additional version"
+msgid "Add as version to..."
 msgstr ""
 
-#empty string with id 40003
+#. Generic video version label (singular)
+#: addons/skin.estuary/xml/DialogVideoInfo.xml
+msgctxt "#40003"
+msgid "Version"
+msgstr ""
 
-#. New video version dialog button
-#: xbmc/video/dialogs/GUIDialogVideoManager.cpp
-#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
-#: xbmc/video/windows/GUIWindowVideoNav.cpp
+#. Button to change the version type of a version in Versions Manager
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 msgctxt "#40004"
-msgid "New version..."
+msgid "Choose type"
 msgstr ""
 
 #. Warning dialog title
@@ -23824,14 +23864,14 @@ msgstr ""
 
 #. Add video version dialog title
 #: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
-#: addons/skin.estuary/xml/DialogVideoVersion.xml
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 msgctxt "#40014"
 msgid "Add version"
 msgstr ""
 
 #. Add video extra dialog title
 #: xbmc/video/dialogs/GUIDialogVideoManagerExtras.cpp
-#: addons/skin.estuary/xml/DialogVideoVersion.xml
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 msgctxt "#40015"
 msgid "Add extra"
 msgstr ""
@@ -23855,7 +23895,7 @@ msgctxt "#40018"
 msgid "Remove video version"
 msgstr ""
 
-#. Add new video version dialog text
+#. Manage versions, remove: removing the default version of a movie is not allowed.
 #: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
 msgctxt "#40019"
 msgid "The default version of a movie cannot be removed. Set a different default version and try again."
@@ -23867,10 +23907,11 @@ msgctxt "#40020"
 msgid "Are you sure to remove version \"{0:s}\"?"
 msgstr ""
 
-#. Convert video to version context menu item
+#. Remove item from library text if item has multiple versions
+#: xbmc/video/windows/GUIWindowVideoNav.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#40021"
-msgid "Convert to version"
+msgid "Would you really like to remove '{0:s}' and all its versions from the library?"
 msgstr ""
 
 #. Manage video version dialog title
@@ -23880,23 +23921,21 @@ msgid "Manage {0:s}"
 msgstr ""
 
 #. Button label to make a video version the default version
-#: addons/skin.estuary/xml/DialogVideoVersion.xml
+#: addons/skin.estuary/xml/DialogVideoManager.xml
 msgctxt "#40023"
 msgid "Set as default"
 msgstr ""
 
 #. Choose/Manage video version dialog title
-#: xbmc/video/guilib/VideoVersionHelper.cpp
 #: xbmc/video/dialogs/GUIDialogVideoManagerVersions.h
 msgctxt "#40024"
-msgid "Versions: {0:s}"
+msgid "Versions Manager: {0:s}"
 msgstr ""
 
 #. Choose/Manage video extra dialog title
-#: xbmc/video/guilib/VideoVersionHelper.cpp
 #: xbmc/video/dialogs/GUIDialogVideoManagerExtras.h
 msgctxt "#40025"
-msgid "Extras: {0:s}"
+msgid "Extras Manager: {0:s}"
 msgstr ""
 
 #. Add extra dialog text.
@@ -23911,7 +23950,69 @@ msgctxt "#40027"
 msgid "The selected video is the \"{0:s}\" extra of the movie \"{1:s}\". Would you like to move the extra to this movie?"
 msgstr ""
 
-#empty strings with id 40028 to 40199
+#. Browse the computer files for the file to be added as version
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40028"
+msgid "Browse files"
+msgstr ""
+
+#. Browse the library for the movie to be added as version
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40029"
+msgid "Browse library"
+msgstr ""
+
+#. Select the movie to be added as a version
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40030"
+msgid "Select movie to add as a version"
+msgstr ""
+
+#. No other movies found in the library
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40031"
+msgid "No other movies found in the library."
+msgstr ""
+
+#. Add version: no similar movies were found in the library.
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40032"
+msgid "No similar movies were found in the library."
+msgstr ""
+
+#empty string id 40033
+
+#. Addition of new extra: a movie with multiple versions cannot be turned into an extra of another movie.
+#: xbmc/video/dialogs/GUIDialogVideoManagerExtras.cpp
+msgctxt "#40034"
+msgid "The default version of a movie with multiple versions cannot be added as an extra to another movie. Please move or remove the other versions first."
+msgstr ""
+
+#. Addition of new version: the user picked an extra of another movie. Ask for confirmation.
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40035"
+msgid "You are about to convert a movie extra into a movie version. Are you sure?"
+msgstr ""
+
+#. Addition of new version: the user picked an extra of another movie. Ask for confirmation.
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40036"
+msgid "You are about to convert a movie version into a movie extra. Are you sure?"
+msgstr ""
+
+#. Addition of new version to a movie: the user chose a movie that has multiple versions. Ask for confirmation.
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40037"
+msgid "The movie to be added has multiple versions.[CR]The type of the default version will be selected in the next dialog. The other versions will keep their current type.[CR]Do you want to continue?"
+msgstr ""
+
+#. Addition of new version: the default version of a movie with multiple versions cannot be turned into a version of another movie.
+#: xbmc/video/dialogs/GUIDialogVideoManagerVersions.cpp
+msgctxt "#40038"
+msgid "The default version of a movie with multiple versions cannot be added to another movie. Please move or remove the other versions first."
+msgstr ""
+
+#empty strings with id 40039 to 40199
 
 #. Select default video version setting
 #: system/settings/settings.xml
@@ -23961,10 +24062,10 @@ msgctxt "#40207"
 msgid "When enabled, a video with multiple versions will be shown as a folder in the video library. This folder can then be opened to display the individual video versions. When disabled, the configured select action will be applied."
 msgstr ""
 
-#. Choose video version context menu item label
-#: xbmc/video/ContextMenus.h
+#. Choose video version dialog title
+#: xbmc/video/guilib/VideoVersionHelper.cpp
 msgctxt "#40208"
-msgid "Choose version"
+msgid "Choose version: {}"
 msgstr ""
 
 #. First choose video version and then select a player and play context menu item label
@@ -23975,12 +24076,14 @@ msgstr ""
 
 #. Button label for video versions
 #: addons/skin.estuary/xml/DialogVideoInfo.xml
+#: xbmc/video/guilib/VideoVersionHelper.cpp
 msgctxt "#40210"
 msgid "Versions"
 msgstr ""
 
 #. Button label for video extras
 #: addons/skin.estuary/xml/DialogVideoInfo.xml
+#: xbmc/video/guilib/VideoVersionHelper.cpp
 msgctxt "#40211"
 msgid "Extras"
 msgstr ""
@@ -23997,7 +24100,55 @@ msgctxt "#40213"
 msgid "If selected the remote player volume level will be synchronized with the volume of this application.[CR]Warning: Global system volume level may be different than the application volume level - they are controlled independently.[CR]This may lead the remote player to be set to 100% volume level if the application has 100% volume level but the overall system volume level is smaller."
 msgstr ""
 
-#empty strings from id 40214 to 40399
+#. Dialog title for the selection of the video extra
+#: xbmc/video/guilib/VideoVersionHelper.cpp
+msgctxt "#40214"
+msgid "Choose extra: {}"
+msgstr ""
+
+#. Title of the dialog for version rename action from Versions Manager
+#: xbmc/video/dialogs/GUIDialogVideoManager.cpp
+msgctxt "#40215"
+msgid "Choose version type"
+msgstr ""
+
+#. Caption of the button to create a new version type (Versions Manager > Rename)
+#: xbmc/video/dialogs/GUIDialogVideoManager.cpp
+msgctxt "#40216"
+msgid "New type..."
+msgstr ""
+
+#. Caption of the dialog for keyboard entry of a new version type
+#: xbmc/video/dialogs/GUIDialogVideoManager.cpp
+msgctxt "#40217"
+msgid "New version type"
+msgstr ""
+
+#. Title of the dialog for extra rename action from Extras Manager
+#: xbmc/video/dialogs/GUIDialogVideoManager.cpp
+msgctxt "#40218"
+msgid "Choose extra name"
+msgstr ""
+
+#. Caption of the button to create a new extra name (Extras Manager > Rename)
+#: xbmc/video/dialogs/GUIDialogVideoManager.cpp
+msgctxt "#40219"
+msgid "New name..."
+msgstr ""
+
+#. Caption of the dialog for keyboard entry of a new extra name
+#: xbmc/video/dialogs/GUIDialogVideoManager.cpp
+msgctxt "#40220"
+msgid "New extra name"
+msgstr ""
+
+#. Choose video version context menu item label
+#: xbmc/video/ContextMenus.h
+msgctxt "#40221"
+msgid "Choose version"
+msgstr ""
+
+#empty strings from id 40222 to 40399
 
 # Video versions
 
@@ -24031,11 +24182,7 @@ msgctxt "#40404"
 msgid "Remastered Version"
 msgstr ""
 
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40405"
-msgid "4K"
-msgstr ""
+#empty string id 40405 do not reuse
 
 #. Name of a video version, like "Director's Cut"
 #: xbmc/video/VideoDatabase.cpp
@@ -24109,83 +24256,7 @@ msgctxt "#40417"
 msgid "Black and White Edition"
 msgstr ""
 
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40418"
-msgid "BluRay"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40419"
-msgid "WEB-DL"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40420"
-msgid "3D"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40421"
-msgid "8K"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40422"
-msgid "IMAX"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40423"
-msgid "UHD"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40424"
-msgid "FHD"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40425"
-msgid "HD"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40426"
-msgid "SD"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40427"
-msgid "DVD"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40428"
-msgid "VHS"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40429"
-msgid "VCD"
-msgstr ""
-
-#. Name of a video version, like "Director's Cut"
-#: xbmc/video/VideoDatabase.cpp
-msgctxt "#40430"
-msgid "REMUX"
-msgstr ""
+#empty strings from id 40418 to 40430 do not reuse
 
 #. Name of a video version, like "Director's Cut"
 #: xbmc/video/VideoDatabase.cpp

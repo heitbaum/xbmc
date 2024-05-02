@@ -45,8 +45,6 @@ public:
   static constexpr auto SETTING_LOCALE_CHARSET = "locale.charset";
   static constexpr auto SETTING_LOCALE_KEYBOARDLAYOUTS = "locale.keyboardlayouts";
   static constexpr auto SETTING_LOCALE_ACTIVEKEYBOARDLAYOUT = "locale.activekeyboardlayout";
-  static constexpr auto SETTING_LOCALE_TIMEZONECOUNTRY = "locale.timezonecountry";
-  static constexpr auto SETTING_LOCALE_TIMEZONE = "locale.timezone";
   static constexpr auto SETTING_LOCALE_SHORTDATEFORMAT = "locale.shortdateformat";
   static constexpr auto SETTING_LOCALE_LONGDATEFORMAT = "locale.longdateformat";
   static constexpr auto SETTING_LOCALE_TIMEFORMAT = "locale.timeformat";
@@ -135,6 +133,7 @@ public:
   static constexpr auto SETTING_VIDEOPLAYER_LIMITGUIUPDATE = "videoplayer.limitguiupdate";
   static constexpr auto SETTING_VIDEOPLAYER_SUPPORTMVC = "videoplayer.supportmvc";
   static constexpr auto SETTING_VIDEOPLAYER_CONVERTDOVI = "videoplayer.convertdovi";
+  static constexpr auto SETTING_VIDEOPLAYER_ALLOWEDHDRFORMATS = "videoplayer.allowedhdrformats";
   static constexpr auto SETTING_MYVIDEOS_SELECTACTION = "myvideos.selectaction";
   static constexpr auto SETTING_MYVIDEOS_SELECTDEFAULTVERSION = "myvideos.selectdefaultversion";
   static constexpr auto SETTING_MYVIDEOS_PLAYACTION = "myvideos.playaction";
@@ -223,6 +222,8 @@ public:
   static constexpr auto SETTING_PVRPLAYBACK_DELAYMARKLASTWATCHED =
       "pvrplayback.delaymarklastwatched";
   static constexpr auto SETTING_PVRPLAYBACK_FPS = "pvrplayback.fps";
+  static constexpr auto SETTING_PVRPLAYBACK_AUTOPLAYNEXTPROGRAMME =
+      "pvrplayback.autoplaynextprogramme";
   static constexpr auto SETTING_PVRRECORD_INSTANTRECORDACTION = "pvrrecord.instantrecordaction";
   static constexpr auto SETTING_PVRRECORD_INSTANTRECORDTIME = "pvrrecord.instantrecordtime";
   static constexpr auto SETTING_PVRRECORD_MARGINSTART = "pvrrecord.marginstart";
@@ -496,6 +497,10 @@ public:
   static constexpr int SETTING_AUTOPLAYNEXT_MOVIES = 3;
   static constexpr int SETTING_AUTOPLAYNEXT_UNCATEGORIZED = 4;
 
+  // values for SETTING_VIDEOPLAYER_ALLOWEDHDRFORMATS
+  static const int VIDEOPLAYER_ALLOWED_HDR_TYPE_DOLBY_VISION = 0;
+  static const int VIDEOPLAYER_ALLOWED_HDR_TYPE_HDR10PLUS = 1;
+
   /*!
    \brief Creates a new settings wrapper around a new settings manager.
 
@@ -595,7 +600,6 @@ protected:
   void UninitializeOptionFillers() override;
   void InitializeConditions() override;
   void UninitializeConditions() override;
-  void InitializeVisibility() override;
   void InitializeDefaults() override;
   void InitializeISettingsHandlers() override;
   void UninitializeISettingsHandlers() override;

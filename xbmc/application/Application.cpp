@@ -60,6 +60,8 @@
 #include "filesystem/DirectoryFactory.h"
 #include "filesystem/DllLibCurl.h"
 #include "filesystem/File.h"
+#include "music/MusicFileItemClassify.h"
+#include "video/VideoFileItemClassify.h"
 #ifdef HAS_FILESYSTEM_NFS
 #include "filesystem/NFSFile.h"
 #endif
@@ -78,8 +80,10 @@
 #include "guilib/TextureManager.h"
 #include "input/InertialScrollingHandler.h"
 #include "input/InputManager.h"
-#include "input/KeyboardLayoutManager.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "input/actions/ActionTranslator.h"
+#include "input/keyboard/KeyboardLayoutManager.h"
 #include "interfaces/AnnouncementManager.h"
 #include "interfaces/builtins/Builtins.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
@@ -129,6 +133,7 @@
 #include "utils/FileExtensionProvider.h"
 #include "utils/JobManager.h"
 #include "utils/LangCodeExpander.h"
+#include "utils/PlayerUtils.h"
 #include "utils/RegExp.h"
 #include "utils/Screenshot.h"
 #include "utils/StringUtils.h"
@@ -187,7 +192,6 @@ using namespace XFILE;
 #ifdef HAS_OPTICAL_DRIVE
 using namespace MEDIA_DETECT;
 #endif
-using namespace VIDEO;
 using namespace MUSIC_INFO;
 using namespace EVENTSERVER;
 using namespace JSONRPC;
@@ -241,76 +245,6 @@ CApplication::~CApplication(void)
   DeregisterComponent(typeid(CApplicationActionListeners));
 }
 
-bool CApplication::OnEvent(XBMC_Event& newEvent)
-{
-  std::unique_lock<CCriticalSection> lock(m_portSection);
-  m_portEvents.push_back(newEvent);
-  return true;
-}
-
-void CApplication::HandlePortEvents()
-{
-  std::unique_lock<CCriticalSection> lock(m_portSection);
-  while (!m_portEvents.empty())
-  {
-    auto newEvent = m_portEvents.front();
-    m_portEvents.pop_front();
-    CSingleExit lock(m_portSection);
-    switch(newEvent.type)
-    {
-      case XBMC_QUIT:
-        if (!m_bStop)
-          CServiceBroker::GetAppMessenger()->PostMsg(TMSG_QUIT);
-        break;
-      case XBMC_VIDEORESIZE:
-        if (CServiceBroker::GetGUI()->GetWindowManager().Initialized())
-        {
-          if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen)
-          {
-            CServiceBroker::GetWinSystem()->GetGfxContext().ApplyWindowResize(newEvent.resize.w, newEvent.resize.h);
-
-            const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
-            settings->SetInt(CSettings::SETTING_WINDOW_WIDTH, newEvent.resize.w);
-            settings->SetInt(CSettings::SETTING_WINDOW_HEIGHT, newEvent.resize.h);
-            settings->Save();
-          }
-          else
-          {
-            const auto& res_info = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
-            CServiceBroker::GetWinSystem()->ForceFullScreen(res_info);
-          }
-        }
-        break;
-      case XBMC_VIDEOMOVE:
-      {
-        CServiceBroker::GetWinSystem()->OnMove(newEvent.move.x, newEvent.move.y);
-      }
-        break;
-      case XBMC_MODECHANGE:
-        CServiceBroker::GetWinSystem()->GetGfxContext().ApplyModeChange(newEvent.mode.res);
-        break;
-      case XBMC_SCREENCHANGE:
-        CServiceBroker::GetWinSystem()->OnChangeScreen(newEvent.screen.screenIdx);
-        break;
-      case XBMC_USEREVENT:
-        CServiceBroker::GetAppMessenger()->PostMsg(static_cast<uint32_t>(newEvent.user.code));
-        break;
-      case XBMC_SETFOCUS:
-      {
-        // Reset the screensaver
-        const auto appPower = GetComponent<CApplicationPowerHandling>();
-        appPower->ResetScreenSaver();
-        appPower->WakeUpScreenSaverAndDPMS();
-        // Send a mouse motion event with no dx,dy for getting the current guiitem selected
-        OnAction(CAction(ACTION_MOUSE_MOVE, 0, static_cast<float>(newEvent.focus.x), static_cast<float>(newEvent.focus.y), 0, 0));
-        break;
-      }
-      default:
-        CServiceBroker::GetInputManager().OnEvent(newEvent);
-    }
-  }
-}
-
 extern "C" void __stdcall init_emu_environ();
 extern "C" void __stdcall update_emu_environ();
 extern "C" void __stdcall cleanup_emu_environ();
@@ -334,7 +268,7 @@ bool CApplication::Create()
   const auto appMessenger = std::make_shared<CApplicationMessenger>();
   CServiceBroker::RegisterAppMessenger(appMessenger);
 
-  const auto keyboardLayoutManager = std::make_shared<CKeyboardLayoutManager>();
+  const auto keyboardLayoutManager = std::make_shared<KEYBOARD::CKeyboardLayoutManager>();
   CServiceBroker::RegisterKeyboardLayoutManager(keyboardLayoutManager);
 
   m_ServiceManager = std::make_unique<CServiceManager>();
@@ -384,13 +318,14 @@ bool CApplication::Create()
 
   // Log Cache GUI settings (replacement of cache in advancedsettings.xml)
   const auto settings = settingsComponent->GetSettings();
+  const float readFactor = settings->GetInt(CSettings::SETTING_FILECACHE_READFACTOR) / 100.0f;
   CLog::Log(LOGINFO,
-            "New Cache GUI Settings (replacement of cache in advancedsettings.xml) are:\n - Buffer "
-            "Mode: {}\n - Memory Size: {} MB\n - Read "
-            "Factor: {:.2f} x\n - Chunk Size : {} bytes",
+            "New Cache GUI Settings (replacement of cache in advancedsettings.xml) are:\n  Buffer "
+            "Mode: {}\n  Memory Size: {} MB\n  Read "
+            "Factor: {:.2f} x {}\n  Chunk Size : {} bytes",
             settings->GetInt(CSettings::SETTING_FILECACHE_BUFFERMODE),
-            settings->GetInt(CSettings::SETTING_FILECACHE_MEMORYSIZE),
-            settings->GetInt(CSettings::SETTING_FILECACHE_READFACTOR) / 100.0f,
+            settings->GetInt(CSettings::SETTING_FILECACHE_MEMORYSIZE), readFactor,
+            (readFactor < 1.0f) ? "(adaptive)" : "",
             settings->GetInt(CSettings::SETTING_FILECACHE_CHUNKSIZE));
 
   CLog::Log(LOGINFO, "creating subdirectories");
@@ -1299,6 +1234,16 @@ bool CApplication::OnAction(const CAction &action)
           CLog::Log(LOGDEBUG,"Resetting playspeed");
         return true;
       }
+      else if (action.GetID() == ACTION_PLAYER_INCREASE_TEMPO)
+      {
+        CPlayerUtils::AdvanceTempoStep(appPlayer, TempoStepChange::INCREASE);
+        return true;
+      }
+      else if (action.GetID() == ACTION_PLAYER_DECREASE_TEMPO)
+      {
+        CPlayerUtils::AdvanceTempoStep(appPlayer, TempoStepChange::DECREASE);
+        return true;
+      }
     }
     // allow play to unpause
     else
@@ -1572,7 +1517,7 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
     newEvent.type = XBMC_VIDEORESIZE;
     newEvent.resize.w = pMsg->param1;
     newEvent.resize.h = pMsg->param2;
-    OnEvent(newEvent);
+    m_pAppPort->OnEvent(newEvent);
     CServiceBroker::GetGUI()->GetWindowManager().MarkDirty();
   }
     break;
@@ -1731,7 +1676,7 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
     if (pMsg->lpVoid)
     {
       XBMC_Event* event = static_cast<XBMC_Event*>(pMsg->lpVoid);
-      OnEvent(*event);
+      m_pAppPort->OnEvent(*event);
       delete event;
     }
   }
@@ -1745,6 +1690,19 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
       m_itemCurrentFile->UpdateInfo(*item);
       CServiceBroker::GetGUI()->GetInfoManager().UpdateCurrentItem(*m_itemCurrentFile);
     }
+  }
+  break;
+
+  case TMSG_SET_VOLUME:
+  {
+    const float volumedB = static_cast<float>(pMsg->param3);
+    GetComponent<CApplicationVolumeHandling>()->SetVolume(volumedB);
+  }
+  break;
+
+  case TMSG_SET_MUTE:
+  {
+    GetComponent<CApplicationVolumeHandling>()->SetMute(pMsg->param3 == 1 ? true : false);
   }
   break;
 
@@ -1796,7 +1754,7 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
       }
     }
 
-    HandlePortEvents();
+    m_pAppPort->HandleEvents();
     CServiceBroker::GetInputManager().Process(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog(), frameTime);
 
     if (processGUI && renderGUI)
@@ -2066,7 +2024,7 @@ bool CApplication::Stop(int exitCode)
         break;
       }
     }
-    m_pAppPort.reset();
+    m_pAppPort->Close();
   }
 
   try
@@ -2307,10 +2265,16 @@ bool CApplication::PlayStack(CFileItem& item, bool bRestart)
   if (!stackHelper->InitializeStack(item))
     return false;
 
-  int startoffset = stackHelper->InitializeStackStartPartAndOffset(item);
+  std::optional<int64_t> startoffset = stackHelper->InitializeStackStartPartAndOffset(item);
+  if (!startoffset)
+  {
+    CLog::LogF(LOGERROR, "Failed to obtain start offset for stack {}. Aborting playback.",
+               item.GetDynPath());
+    return false;
+  }
 
   CFileItem selectedStackPart = stackHelper->GetCurrentStackPartFileItem();
-  selectedStackPart.SetStartOffset(startoffset);
+  selectedStackPart.SetStartOffset(startoffset.value());
 
   if (item.HasProperty("savedplayerstate"))
   {
@@ -2321,7 +2285,10 @@ bool CApplication::PlayStack(CFileItem& item, bool bRestart)
   return PlayFile(selectedStackPart, "", true);
 }
 
-bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRestart)
+bool CApplication::PlayFile(CFileItem item,
+                            const std::string& player,
+                            bool bRestart /* = false */,
+                            bool forceSelection /* = false */)
 {
   // Ensure the MIME type has been retrieved for http:// and shout:// streams
   if (item.GetMimeType().empty())
@@ -2338,11 +2305,11 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
     m_nextPlaylistItem = -1;
     stackHelper->Clear();
 
-    if (item.IsVideo())
+    if (VIDEO::IsVideo(item))
       CUtil::ClearSubtitles();
   }
 
-  if (item.IsDiscStub())
+  if (VIDEO::IsDiscStub(item))
   {
     return CServiceBroker::GetMediaManager().playStubFile(item);
   }
@@ -2383,7 +2350,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
   {
     // the following code block is only applicable when bRestart is false OR to ISO stacks
 
-    if (item.IsVideo())
+    if (VIDEO::IsVideo(item))
     {
       // open the d/b and retrieve the bookmarks for the current movie
       CVideoDatabase dbs;
@@ -2391,7 +2358,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
 
       std::string path = item.GetPath();
       std::string videoInfoTagPath(item.GetVideoInfoTag()->m_strFileNameAndPath);
-      if (videoInfoTagPath.find("removable://") == 0 || item.IsVideoDb())
+      if (videoInfoTagPath.find("removable://") == 0 || VIDEO::IsVideoDb(item))
         path = videoInfoTagPath;
 
       // Note that we need to load the tag from database also if the item already has a tag,
@@ -2461,7 +2428,8 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
 
   // a disc image might be Blu-Ray disc
   if (!(options.startpercent > 0.0 || options.starttime > 0.0) &&
-      (item.IsBDFile() || item.IsDiscImage()))
+      (VIDEO::IsBDFile(item) || item.IsDiscImage() ||
+       (VIDEO::IsBlurayPlaylist(item) && forceSelection)))
   {
     // No video selection when using external or remote players (they handle it if supported)
     const bool isSimpleMenuAllowed = [&]()
@@ -2479,7 +2447,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
     if (isSimpleMenuAllowed)
     {
       // Check if we must show the simplified bd menu.
-      if (!CGUIDialogSimpleMenu::ShowPlaySelection(item))
+      if (!CGUIDialogSimpleMenu::ShowPlaySelection(item, forceSelection))
         return true;
     }
   }
@@ -2487,7 +2455,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
   // this really aught to be inside !bRestart, but since PlayStack
   // uses that to init playback, we have to keep it outside
   const PLAYLIST::Id playlistId = CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist();
-  if (item.IsAudio() && playlistId == PLAYLIST::TYPE_MUSIC)
+  if (MUSIC::IsAudio(item) && playlistId == PLAYLIST::TYPE_MUSIC)
   { // playing from a playlist by the looks
     // don't switch to fullscreen if we are not playing the first item...
     options.fullscreen = !CServiceBroker::GetPlaylistPlayer().HasPlayedFirstFile() &&
@@ -2495,7 +2463,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
         CSettings::SETTING_MUSICFILES_SELECTACTION) &&
         !CMediaSettings::GetInstance().DoesMediaStartWindowed();
   }
-  else if (item.IsVideo() && playlistId == PLAYLIST::TYPE_VIDEO &&
+  else if (VIDEO::IsVideo(item) && playlistId == PLAYLIST::TYPE_VIDEO &&
            CServiceBroker::GetPlaylistPlayer().GetPlaylist(playlistId).size() > 1)
   { // playing from a playlist by the looks
     // don't switch to fullscreen if we are not playing the first item...
@@ -2605,7 +2573,7 @@ void CApplication::PlaybackCleanup()
 
   // DVD ejected while playing in vis ?
   if (!appPlayer->IsPlayingAudio() &&
-      (m_itemCurrentFile->IsCDDA() || m_itemCurrentFile->IsOnDVD()) &&
+      (MUSIC::IsCDDA(*m_itemCurrentFile) || m_itemCurrentFile->IsOnDVD()) &&
       !CServiceBroker::GetMediaManager().IsDiscInDrive() &&
       CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_VISUALISATION)
   {
@@ -2757,11 +2725,11 @@ bool CApplication::OnMessage(CGUIMessage& message)
         // we've started a previously queued item
         CFileItemPtr item = playList[m_nextPlaylistItem];
         // update the playlist manager
-        int currentSong = CServiceBroker::GetPlaylistPlayer().GetCurrentSong();
+        int currentSong = CServiceBroker::GetPlaylistPlayer().GetCurrentItemIdx();
         int param = ((currentSong & 0xffff) << 16) | (m_nextPlaylistItem & 0xffff);
         CGUIMessage msg(GUI_MSG_PLAYLISTPLAYER_CHANGED, 0, 0, CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist(), param, item);
         CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
-        CServiceBroker::GetPlaylistPlayer().SetCurrentSong(m_nextPlaylistItem);
+        CServiceBroker::GetPlaylistPlayer().SetCurrentItemIdx(m_nextPlaylistItem);
         m_itemCurrentFile = std::make_shared<CFileItem>(*item);
       }
       CServiceBroker::GetGUI()->GetInfoManager().SetCurrentItem(*m_itemCurrentFile);
@@ -2800,7 +2768,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
     {
       // Check to see if our playlist player has a new item for us,
       // and if so, we check whether our current player wants the file
-      int iNext = CServiceBroker::GetPlaylistPlayer().GetNextSong();
+      int iNext = CServiceBroker::GetPlaylistPlayer().GetNextItemIdx();
       PLAYLIST::CPlayList& playlist = CServiceBroker::GetPlaylistPlayer().GetPlaylist(
           CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist());
       if (iNext < 0 || iNext >= playlist.size())
@@ -2820,9 +2788,9 @@ bool CApplication::OnMessage(CGUIMessage& message)
       bool bNothingToQueue = false;
 
       const auto appPlayer = GetComponent<CApplicationPlayer>();
-      if (!file.IsVideo() && appPlayer->IsPlayingVideo())
+      if (!VIDEO::IsVideo(file) && appPlayer->IsPlayingVideo())
         bNothingToQueue = true;
-      else if ((!file.IsAudio() || file.IsVideo()) && appPlayer->IsPlayingAudio())
+      else if ((!MUSIC::IsAudio(file) || VIDEO::IsVideo(file)) && appPlayer->IsPlayingAudio())
         bNothingToQueue = true;
 
       if (bNothingToQueue)
@@ -2849,7 +2817,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
       {
         /* Player didn't accept next file: *ALWAYS* advance playlist in this case so the player can
             queue the next (if it wants to) and it doesn't keep looping on this song */
-        CServiceBroker::GetPlaylistPlayer().SetCurrentSong(iNext);
+        CServiceBroker::GetPlaylistPlayer().SetCurrentItemIdx(iNext);
       }
 
       return true;
@@ -2917,11 +2885,20 @@ bool CApplication::OnMessage(CGUIMessage& message)
       PlayFile(stackHelper->SetNextStackPartCurrentFileItem(), "", true);
       return true;
     }
-    ResetCurrentItem();
-    if (!CServiceBroker::GetPlaylistPlayer().PlayNext(1, true))
-      GetComponent<CApplicationPlayer>()->ClosePlayer();
 
-    PlaybackCleanup();
+    // For EPG playlist items we keep the player open to ensure continuous viewing experience.
+    const bool isEpgPlaylistItem{
+        m_itemCurrentFile->GetProperty("epg_playlist_item").asBoolean(false)};
+
+    ResetCurrentItem();
+
+    if (!isEpgPlaylistItem)
+    {
+      if (!CServiceBroker::GetPlaylistPlayer().PlayNext(1, true))
+        GetComponent<CApplicationPlayer>()->ClosePlayer();
+
+      PlaybackCleanup();
+    }
 
 #ifdef HAS_PYTHON
     CServiceBroker::GetXBPython().OnPlayBackEnded();
@@ -3044,7 +3021,8 @@ bool CApplication::OnMessage(CGUIMessage& message)
   return false;
 }
 
-bool CApplication::ExecuteXBMCAction(std::string actionStr, const CGUIListItemPtr &item /* = NULL */)
+bool CApplication::ExecuteXBMCAction(std::string actionStr,
+                                     const std::shared_ptr<CGUIListItem>& item /* = NULL */)
 {
   // see if it is a user set string
 
@@ -3067,7 +3045,7 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr, const CGUIListItemPt
   {
     // try translating the action from our ButtonTranslator
     unsigned int actionID;
-    if (CActionTranslator::TranslateString(actionStr, actionID))
+    if (ACTION::CActionTranslator::TranslateString(actionStr, actionID))
     {
       OnAction(CAction(actionID));
       return true;
@@ -3080,7 +3058,7 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr, const CGUIListItemPt
     }
     else
 #endif
-    if (item.IsAudio() || item.IsVideo() || item.IsGame())
+        if (MUSIC::IsAudio(item) || VIDEO::IsVideo(item) || item.IsGame())
     { // an audio or video file
       PlayFile(item, "");
     }
@@ -3201,10 +3179,8 @@ void CApplication::ProcessSlow()
 
   // Temporarily pause pausable jobs when viewing video/picture
   int currentWindow = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
-  if (CurrentFileItem().IsVideo() ||
-      CurrentFileItem().IsPicture() ||
-      currentWindow == WINDOW_FULLSCREEN_VIDEO ||
-      currentWindow == WINDOW_FULLSCREEN_GAME ||
+  if (VIDEO::IsVideo(CurrentFileItem()) || CurrentFileItem().IsPicture() ||
+      currentWindow == WINDOW_FULLSCREEN_VIDEO || currentWindow == WINDOW_FULLSCREEN_GAME ||
       currentWindow == WINDOW_SLIDESHOW)
   {
     CServiceBroker::GetJobManager()->PauseJobs();

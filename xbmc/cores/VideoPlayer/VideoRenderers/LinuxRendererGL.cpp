@@ -531,9 +531,56 @@ void CLinuxRendererGL::RenderUpdate(int index, int index2, bool clear, unsigned 
 void CLinuxRendererGL::ClearBackBuffer()
 {
   //set the entire backbuffer to black
-  glClearColor(m_clearColour, m_clearColour, m_clearColour, 0);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glClearColor(0,0,0,0);
+  //if we do a two pass render, we have to draw a quad. else we might occlude OSD elements.
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetRenderOrder() ==
+      RENDER_ORDER_ALL_BACK_TO_FRONT)
+  {
+    CServiceBroker::GetWinSystem()->GetGfxContext().Clear(0xff000000);
+  }
+  else
+  {
+    ClearBackBufferQuad();
+  }
+}
+
+void CLinuxRendererGL::ClearBackBufferQuad()
+{
+  CRect windowRect(0, 0, CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(),
+                   CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight());
+  struct Svertex
+  {
+    float x, y;
+  };
+
+  std::vector<Svertex> vertices{
+      {windowRect.x1, windowRect.y2 * 2},
+      {windowRect.x1, windowRect.y1},
+      {windowRect.x2 * 2, windowRect.y1},
+  };
+
+  glDisable(GL_BLEND);
+
+  m_renderSystem->EnableShader(ShaderMethodGL::SM_DEFAULT);
+  GLint posLoc = m_renderSystem->ShaderGetPos();
+  GLint uniCol = m_renderSystem->ShaderGetUniCol();
+
+  glUniform4f(uniCol, m_clearColour / 255.0f, m_clearColour / 255.0f, m_clearColour / 255.0f, 1.0f);
+
+  GLuint vertexVBO;
+  glGenBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Svertex) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+  glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Svertex), 0);
+  glEnableVertexAttribArray(posLoc);
+
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+  glDisableVertexAttribArray(posLoc);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &vertexVBO);
+
+  m_renderSystem->DisableShader();
 }
 
 //draw black bars around the video quad, this is more efficient than glClear()
@@ -1047,8 +1094,6 @@ void CLinuxRendererGL::RenderSinglePass(int index, int field)
     LoadShaders(field);
   }
 
-  glDisable(GL_DEPTH_TEST);
-
   // Y
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(m_textureTarget, planes[0].id);
@@ -1218,8 +1263,6 @@ void CLinuxRendererGL::RenderToFBO(int index, int field, bool weave /*= false*/)
       return;
     }
   }
-
-  glDisable(GL_DEPTH_TEST);
 
   // Y
   glActiveTexture(GL_TEXTURE0);
@@ -1662,7 +1705,7 @@ void CLinuxRendererGL::RenderRGB(int index, int field)
   glBindTexture(m_textureTarget, 0);
 }
 
-bool CLinuxRendererGL::RenderCapture(CRenderCapture* capture)
+bool CLinuxRendererGL::RenderCapture(int index, CRenderCapture* capture)
 {
   if (!m_bValidated)
     return false;
@@ -1688,7 +1731,7 @@ bool CLinuxRendererGL::RenderCapture(CRenderCapture* capture)
 
   capture->BeginRender();
 
-  Render(RENDER_FLAG_NOOSD, m_iYV12RenderBuffer);
+  Render(RENDER_FLAG_NOOSD, index);
   // read pixels
   glReadPixels(0, CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight() - capture->GetHeight(), capture->GetWidth(), capture->GetHeight(),
                GL_BGRA, GL_UNSIGNED_BYTE, capture->GetRenderBuffer());

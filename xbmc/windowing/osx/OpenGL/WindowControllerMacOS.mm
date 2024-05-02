@@ -11,6 +11,7 @@
 #include "ServiceBroker.h"
 #include "application/AppInboundProtocol.h"
 #include "application/Application.h"
+#include "interfaces/AnnouncementManager.h"
 #include "messaging/ApplicationMessenger.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
@@ -20,6 +21,8 @@
 #import "windowing/osx/WinSystemOSX.h"
 
 @implementation XBMCWindowControllerMacOS
+
+bool m_inFullscreenTransition = false;
 
 - (nullable instancetype)initWithTitle:(NSString*)title defaultSize:(NSSize)size
 {
@@ -76,6 +79,30 @@
   }
 }
 
+- (void)windowWillStartLiveResize:(NSNotification*)notification
+{
+  if (m_inFullscreenTransition)
+    return;
+
+  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+  if (appPort)
+  {
+    appPort->SetRenderGUI(false);
+  }
+}
+
+- (void)windowDidEndLiveResize:(NSNotification*)notification
+{
+  if (m_inFullscreenTransition)
+    return;
+
+  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+  if (appPort)
+  {
+    appPort->SetRenderGUI(true);
+  }
+}
+
 - (void)windowDidMiniaturize:(NSNotification*)aNotification
 {
   g_application.m_AppFocused = false;
@@ -89,6 +116,7 @@
 - (void)windowDidBecomeKey:(NSNotification*)aNotification
 {
   g_application.m_AppFocused = true;
+  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::GUI, "WindowFocused");
 
   auto winSystem = dynamic_cast<CWinSystemOSX*>(CServiceBroker::GetWinSystem());
   if (winSystem)
@@ -100,6 +128,7 @@
 - (void)windowDidResignKey:(NSNotification*)aNotification
 {
   g_application.m_AppFocused = false;
+  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::GUI, "WindowUnfocused");
 
   auto winSystem = dynamic_cast<CWinSystemOSX*>(CServiceBroker::GetWinSystem());
   if (winSystem)
@@ -167,8 +196,14 @@
   return frameSize;
 }
 
+- (void)windowWillExitFullScreen:(NSNotification*)notification
+{
+  m_inFullscreenTransition = true;
+}
+
 - (void)windowWillEnterFullScreen:(NSNotification*)pNotification
 {
+  m_inFullscreenTransition = true;
   CWinSystemOSX* winSystem = dynamic_cast<CWinSystemOSX*>(CServiceBroker::GetWinSystem());
   if (!winSystem)
     return;
@@ -206,6 +241,7 @@
 
 - (void)windowDidExitFullScreen:(NSNotification*)pNotification
 {
+  m_inFullscreenTransition = false;
   auto winSystem = dynamic_cast<CWinSystemOSX*>(CServiceBroker::GetWinSystem());
   if (!winSystem)
     return;
@@ -232,6 +268,7 @@
 
 - (void)windowDidEnterFullScreen:(NSNotification*)notification
 {
+  m_inFullscreenTransition = false;
   auto winSystem = dynamic_cast<CWinSystemOSX*>(CServiceBroker::GetWinSystem());
   if (!winSystem)
     return;

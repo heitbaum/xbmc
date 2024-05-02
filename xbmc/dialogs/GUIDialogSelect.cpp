@@ -9,9 +9,10 @@
 #include "GUIDialogSelect.h"
 
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/LocalizeStrings.h"
-#include "input/Key.h"
+#include "input/actions/ActionIDs.h"
 #include "utils/StringUtils.h"
 
 #include <memory>

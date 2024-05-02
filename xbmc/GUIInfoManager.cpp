@@ -793,18 +793,6 @@ const infomap integer_bools[] =  {{ "isequal",          INTEGER_IS_EQUAL },
 ///     @skinning_v18 **[New Infolabel]** \link Player_Icon `Player.Icon`\endlink
 ///     <p>
 ///   }
-///   \table_row3{   <b>`Player.Cutlist`</b>,
-///                  \anchor Player_Cutlist
-///                  _string_,
-///     @return The cutlist of the currently playing item as csv in the format start1\,end1\,start2\,end2\,...
-///     Tokens must have values in the range from 0.0 to 100.0. end token must be less or equal than start token.
-///     <p>
-///     @deprecated \link Player_Cutlist `Player.Cutlist`\endlink is deprecated and will be removed in the next version.
-///     <p><hr>
-///     @skinning_v19 **[New Infolabel]** \link Player_Cutlist `Player.Cutlist`\endlink
-///     @skinning_v20 \link Player_Cutlist `Player.Cutlist`\endlink is deprecated\, use \link Player_Editlist `Player.Editlist`\endlink instead
-///     <p>
-///   }
 ///   \table_row3{   <b>`Player.Editlist`</b>,
 ///                  \anchor Player_Editlist
 ///                  _string_,
@@ -919,7 +907,6 @@ const infomap player_labels[] = {{"hasmedia", PLAYER_HAS_MEDIA},
                                  {"hasresolutions", PLAYER_HAS_RESOLUTIONS},
                                  {"frameadvance", PLAYER_FRAMEADVANCE},
                                  {"icon", PLAYER_ICON},
-                                 {"cutlist", PLAYER_CUTLIST},
                                  {"editlist", PLAYER_EDITLIST},
                                  {"cuts", PLAYER_CUTS},
                                  {"scenemarkers", PLAYER_SCENE_MARKERS},
@@ -1347,6 +1334,15 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///     @skinning_v17 **[New Boolean Condition]** \link System_HasPVRAddon
 ///     `System.HasPVRAddon`\endlink <p>
 ///   }
+///   \table_row3{   <b>`System.PVRCount`</b>,
+///                  \anchor System_PVRCount
+///                  _integer_,
+///     @return Number of PVR clients enabled.
+///     @note If a PVR is enabled but unreachable\, it is still counted.
+///     <p><hr>
+///     @skinning_v22 **[New Integer Value]** \link System_PVRCount `System.PVRCount`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`System.HasCMS`</b>,
 ///                  \anchor System_HasCMS
 ///                  _boolean_,
@@ -1423,6 +1419,14 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///                  _boolean_,
 ///     @return **True** if Kodi is running on an android device.
 ///     <p>
+///   }
+///   \table_row3{   <b>`System.Platform.WebOS`</b>,
+///                  \anchor System_PlatformWebOS
+///                  _boolean_,
+///     @return **True** if Kodi is running on a WebOS device.
+///     <p><hr>
+///     @skinning_v21 **[New Boolean Condition]** \link System_PlatformWebOS
+///     `System.Platform.WebOS`\endlink <p>
 ///   }
 ///   \table_row3{   <b>`System.CanPowerDown`</b>,
 ///                  \anchor System_CanPowerDown
@@ -1763,12 +1767,13 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///                  _string_,
 ///     @return Locale-specific information depending on the requested type.
 ///     @param type - Can be one of the following:
-///       - <b>timezonecountry</b> The country name for the current time zone.
-///       - <b>timezone</b> The full timezone name with country and optional region.
 ///       - <b>region</b> The currently selected region name within the selected language ( \link System_Language `System.Language` \endlink).
 ///       - <b>iso</b> The country code of the currently selected region as specified in <a href="https://kodi.wiki/view/Language_support#What_is_langinfo.xml">langinfo.xml</a>.
 ///     <p><hr>
 ///     @skinning_v21 **[New Infolabel]** \link System_Locale
+///     `System.Locale(type)`\endlink
+///     <p>
+///     @skinning_v22 **[Removed options]** `timezonecountry` and `timezone` from \link System_Locale
 ///     `System.Locale(type)`\endlink
 ///     <p>
 ///   }
@@ -1979,6 +1984,7 @@ const infomap system_labels[] = {
     {"hascms", SYSTEM_HAS_CMS},
     {"privacypolicy", SYSTEM_PRIVACY_POLICY},
     {"haspvraddon", SYSTEM_HAS_PVR_ADDON},
+    {"pvrcount", SYSTEM_PVR_COUNT},
     {"addonupdatecount", SYSTEM_ADDON_UPDATE_COUNT},
     {"supportscpuusage", SYSTEM_SUPPORTS_CPU_USAGE},
     {"supportedhdrtypes", SYSTEM_SUPPORTED_HDR_TYPES},
@@ -2959,6 +2965,13 @@ const infomap musicplayer[] =    {{ "title",            MUSICPLAYER_TITLE },
 ///     library or from a plugin (eg director/plot etc.)
 ///     <p>
 ///   }
+///   \table_row3{   <b>`VideoPlayer.HasVideoVersions`</b>,
+///                  \anchor VideoPlayer_HasVideoVersions
+///                  _boolean_,
+///     @return **True** when the played item has multiple video versions.
+///     <p><hr>
+///     @skinning_v21 **[New Infolabel]** \link VideoPlayer_HasVideoVersions `VideoPlayer.HasVideoVersions`\endlink
+///   }
 ///   \table_row3{   <b>`VideoPlayer.Content(parameter)`</b>,
 ///                  \anchor VideoPlayer_Content
 ///                  _boolean_,
@@ -3925,6 +3938,13 @@ const infomap musicplayer[] =    {{ "title",            MUSICPLAYER_TITLE },
 ///     @skinning_v20 **[New Infolabel]** \link VideoPlayer_HdrType `VideoPlayer.HdrType`\endlink
 ///     <p>
 ///   }
+///   \table_row3{   <b>`VideoPlayer.VideoVersionName`</b>,
+///                  \anchor VideoPlayer_VideoVersionName
+///                  _string_,
+///     @return String containing the version name of the currently playing video (movie) - empty if not a movie, version name is not set or not a version
+///     <p><hr>
+///     @skinning_v21 **[New Infolabel]** \link VideoPlayer_VideoVersionName `VideoPlayer.VideoVersionName`\endlink
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
@@ -4001,6 +4021,8 @@ const infomap videoplayer[] =    {{ "title",            VIDEOPLAYER_TITLE },
                                   { "audiostreamcount", VIDEOPLAYER_AUDIOSTREAMCOUNT },
                                   { "hdrtype",          VIDEOPLAYER_HDR_TYPE },
                                   { "art",              VIDEOPLAYER_ART},
+                                  { "videoversionname", VIDEOPLAYER_VIDEOVERSION_NAME},
+                                  { "hasvideoversions", VIDEOPLAYER_HAS_VIDEOVERSIONS}
 };
 // clang-format on
 
@@ -5191,9 +5213,6 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     <p>
 ///     @deprecated \link ListItem_PictureColour `ListItem.PictureColour`\endlink is deprecated and will be removed in future Kodi versions
 ///     <p><hr>
-///     @skinning_v20 **[Deprecated]** \link ListItem_PictureColour `ListItem.PictureColour`\endlink is deprecated and will be removed in future Kodi versions
-///     <p>
-///     <p><hr>
 ///     @skinning_v13 **[New Infolabel]** \link ListItem_PictureColour `ListItem.PictureColour`\endlink
 ///     <p>
 ///   }
@@ -5513,9 +5532,6 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @return The process used to compress the selected picture.
 ///     <p>
 ///     @deprecated \link ListItem_PictureProcess `ListItem.PictureProcess`\endlink is deprecated and will be removed in future Kodi versions
-///     <p><hr>
-///     @skinning_v20 **[Deprecated]** \link ListItem_PictureProcess `ListItem.PictureProcess`\endlink is deprecated and will be removed in future Kodi versions
-///     <p>
 ///     <p><hr>
 ///     @skinning_v13 **[New Infolabel]** \link ListItem_PictureProcess `ListItem.PictureProcess`\endlink
 ///     <p>
@@ -6913,6 +6929,14 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     <p><hr>
 ///     @skinning_v21 **[New Infolabel]** \link ListItem_SongVideoURL `ListItem.SongVideoURL`\endlink
 ///   }
+///   \table_row3{   <b>`ListItem.BackendInstanceName`</b>,
+///                  \anchor ListItem_BackendInstanceName
+///                  _string_,
+///     @return The name used by the PVR client addon instance for the selected item.
+///     <p><hr>
+///     @skinning_v22 **[New Infolabel]** \link ListItem_BackendInstanceName `ListItem.BackendInstanceName`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`ListItem.VideoWidth`</b>,
 ///                  \anchor ListItem_VideoWidth
 ///                  _string_,
@@ -6940,6 +6964,20 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @return **True** when the selected item is a video extra.
 ///     <p><hr>
 ///     @skinning_v21 **[New Infolabel]** \link ListItem_IsVideoExtra `ListItem.IsVideoExtra`\endlink
+///   }
+///   \table_row3{   <b>`ListItem.VideoVersionName`</b>,
+///                  \anchor ListItem_VideoVersionName
+///                  _string_,
+///     @return String containing the name of the version of a video - empty for extras or if no version available
+///     <p><hr>
+///     @skinning_v21 **[New Infolabel]** \link ListItem_VideoVersionName `ListItem.VideoVersionName`\endlink
+///   }
+///   \table_row3{   <b>`ListItem.HasVideoExtras`</b>,
+///                  \anchor ListItem_HasVideoExtras
+///                  _boolean_,
+///     @return **True** when the selected item has video extras.
+///     <p><hr>
+///     @skinning_v21 **[New Infolabel]** \link ListItem_HasVideoExtras `ListItem.HasVideoExtras`\endlink
 ///   }
 /// \table_end
 ///
@@ -7160,6 +7198,9 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "songvideourl",     LISTITEM_SONG_VIDEO_URL },
                                   { "hasvideoversions", LISTITEM_HASVIDEOVERSIONS },
                                   { "isvideoextra",     LISTITEM_ISVIDEOEXTRA },
+                                  { "videoversionname", LISTITEM_VIDEOVERSION_NAME },
+                                  { "hasvideoextras",   LISTITEM_HASVIDEOEXTRAS },
+                                  { "backendinstancename", LISTITEM_BACKEND_INSTANCE_NAME },
 };
 // clang-format on
 
@@ -8172,6 +8213,7 @@ const infomap playlist[] =       {{ "length",           PLAYLIST_LENGTH },
 ///     <p>
 ///   }
 ///
+// clang-format off
 const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING },
                                   { "hastimer",                 PVR_HAS_TIMER },
                                   { "hastvchannels",            PVR_HAS_TV_CHANNELS },
@@ -8251,6 +8293,7 @@ const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING
                                   { "timeshiftprogressbufferstart", PVR_TIMESHIFT_PROGRESS_BUFFER_START },
                                   { "timeshiftprogressbufferend", PVR_TIMESHIFT_PROGRESS_BUFFER_END },
                                   { "epgeventicon",               PVR_EPG_EVENT_ICON }};
+// clang-format on
 
 /// \page modules__infolabels_boolean_conditions
 ///   \table_row3{   <b>`PVR.EpgEventDuration`</b>,
@@ -9106,9 +9149,6 @@ const infomap rds[] =            {{ "hasrds",                   RDS_HAS_RDS },
 ///     <p>
 ///     @deprecated Slideshow_Colour `Slideshow.Colour`\endlink is deprecated and will be removed in future Kodi versions
 ///     <p><hr>
-///     @skinning_v20 **[Deprecated]** \link Slideshow_Colour `Slideshow.Colour`\endlink is deprecated and will be removed in future Kodi versions
-///     <p>
-///     <p><hr>
 ///     @skinning_v13 **[New Infolabel]** \link Slideshow_Colour `Slideshow.Colour`\endlink
 ///     <p>
 ///   }
@@ -9439,9 +9479,6 @@ const infomap rds[] =            {{ "hasrds",                   RDS_HAS_RDS },
 ///     @return The process used to compress the current picture.
 ///     <p>
 ///     @deprecated \link Slideshow_Process `Slideshow.Process`\endlink is deprecated and will be removed in future Kodi versions
-///     <p><hr>
-///     @skinning_v20 **[Deprecated]** \link Slideshow_Process `Slideshow.Process`\endlink is deprecated and will be removed in future Kodi versions
-///     <p>
 ///     <p><hr>
 ///     @skinning_v13 **[New Infolabel]** \link Slideshow_Process `Slideshow.Process`\endlink
 ///     <p>
@@ -9814,6 +9851,11 @@ const infomap slideshow[] =      {{ "ispaused",               SLIDESHOW_ISPAUSED
 
 /// \page modules__infolabels_boolean_conditions
 /// \section modules_rm_infolabels_booleans Additional revision history for Infolabels and Boolean Conditions
+/// <hr>
+/// \subsection modules_rm_infolabels_booleans_v22 Kodi v22
+/// @skinning_v22 **[Removed Infolabels]** The following infolabels have been removed:
+///   - `Player.Cutlist` - Please use \link Player_Editlist `Player.EditList`\endlink for the EDL list and \link Player_Cuts `Player.Cuts`\endlink for the cut markers
+///
 /// <hr>
 /// \subsection modules_rm_infolabels_booleans_v21 Kodi v21 (Omega)
 /// @skinning_v21 **[Removed Infolabels]** The following infolabels have been removed:
@@ -10207,15 +10249,7 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
           return AddMultiInfo(CGUIInfo(SYSTEM_IDLE_TIME, atoi(param.c_str())));
         else if (prop.name == "locale")
         {
-          if (param == "timezonecountry")
-          {
-            return SYSTEM_LOCALE_TIMEZONECOUNTRY;
-          }
-          else if (param == "timezone")
-          {
-            return SYSTEM_LOCALE_TIMEZONE;
-          }
-          else if (param == "region")
+          if (param == "region")
           {
             return SYSTEM_LOCALE_REGION;
           }
@@ -10556,6 +10590,8 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         return SYSTEM_PLATFORM_DARWIN_TVOS;
       else if (platform == "android")
         return SYSTEM_PLATFORM_ANDROID;
+      else if (platform == "webos")
+        return SYSTEM_PLATFORM_WEBOS;
     }
     if (info[0].name == "musicplayer")
     { //! @todo these two don't allow duration(foo) and also don't allow more than this number of levels...
@@ -10782,7 +10818,7 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
   }
   else if (info >= LISTITEM_START && info <= LISTITEM_END)
   {
-    const CGUIListItemPtr item = GUIINFO::GetCurrentListItem(contextWindow);
+    const std::shared_ptr<CGUIListItem> item = GUIINFO::GetCurrentListItem(contextWindow);
     if (item && item->IsFileItem())
       return GetItemLabel(static_cast<CFileItem*>(item.get()), contextWindow, info, fallback);
   }
@@ -10800,7 +10836,7 @@ bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUI
   }
   else if (info >= LISTITEM_START && info <= LISTITEM_END)
   {
-    CGUIListItemPtr itemPtr;
+    std::shared_ptr<CGUIListItem> itemPtr;
     if (!item)
     {
       itemPtr = GUIINFO::GetCurrentListItem(contextWindow);
@@ -10841,7 +10877,9 @@ void CGUIInfoManager::UnRegister(const INFO::InfoPtr& expression)
   m_bools.erase(expression);
 }
 
-bool CGUIInfoManager::EvaluateBool(const std::string &expression, int contextWindow /* = 0 */, const CGUIListItemPtr &item /* = nullptr */)
+bool CGUIInfoManager::EvaluateBool(const std::string& expression,
+                                   int contextWindow /* = 0 */,
+                                   const std::shared_ptr<CGUIListItem>& item /* = nullptr */)
 {
   INFO::InfoPtr info = Register(expression, contextWindow);
   if (info)
@@ -10856,7 +10894,7 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
 
   if (condition >= LISTITEM_START && condition < LISTITEM_END)
   {
-    CGUIListItemPtr itemPtr;
+    std::shared_ptr<CGUIListItem> itemPtr;
     if (!item)
     {
       itemPtr = GUIINFO::GetCurrentListItem(contextWindow);
@@ -10885,7 +10923,7 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
 
   if (condition >= LISTITEM_START && condition <= LISTITEM_END)
   {
-    CGUIListItemPtr itemPtr;
+    std::shared_ptr<CGUIListItem> itemPtr;
     if (!item)
     {
       itemPtr = GUIINFO::GetCurrentListItem(contextWindow, info.GetData1(), info.GetData2(), info.GetInfoFlag());
@@ -10926,7 +10964,7 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
           if (info.GetData2() < 0) // info labels are stored with negative numbers
           {
             int info2 = -info.GetData2();
-            CGUIListItemPtr item2;
+            std::shared_ptr<CGUIListItem> item2;
 
             if (IsListItemInfo(info2))
             {
@@ -11031,7 +11069,7 @@ bool CGUIInfoManager::GetMultiInfoInt(int &value, const CGUIInfo &info, int cont
   }
   else if (info.m_info >= LISTITEM_START && info.m_info <= LISTITEM_END)
   {
-    CGUIListItemPtr itemPtr;
+    std::shared_ptr<CGUIListItem> itemPtr;
     if (!item)
     {
       itemPtr = GUIINFO::GetCurrentListItem(contextWindow, info.GetData1(), info.GetData2(), info.GetInfoFlag());
@@ -11066,7 +11104,8 @@ std::string CGUIInfoManager::GetMultiInfoLabel(const CGUIInfo &constinfo, int co
 
   if (info.m_info >= LISTITEM_START && info.m_info <= LISTITEM_END)
   {
-    const CGUIListItemPtr item = GUIINFO::GetCurrentListItem(contextWindow, info.GetData1(), info.GetData2(), info.GetInfoFlag());
+    const std::shared_ptr<CGUIListItem> item = GUIINFO::GetCurrentListItem(
+        contextWindow, info.GetData1(), info.GetData2(), info.GetInfoFlag());
     if (item)
     {
       // Image prioritizes images over labels (in the case of music item ratings for instance)
@@ -11111,7 +11150,7 @@ std::string CGUIInfoManager::GetImage(int info, int contextWindow, std::string *
            info == LISTITEM_OVERLAY ||
            info == LISTITEM_ART)
   {
-    const CGUIListItemPtr item = GUIINFO::GetCurrentListItem(contextWindow);
+    const std::shared_ptr<CGUIListItem> item = GUIINFO::GetCurrentListItem(contextWindow);
     if (item && item->IsFileItem())
       return GetItemImage(item.get(), contextWindow, info, fallback);
   }

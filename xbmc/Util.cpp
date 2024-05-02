@@ -7,6 +7,7 @@
  */
 
 #include "network/Network.h"
+#include "video/VideoFileItemClassify.h"
 #if defined(TARGET_DARWIN)
 #include <sys/param.h>
 #include <mach-o/dyld.h>
@@ -92,6 +93,7 @@ using namespace MEDIA_DETECT;
 using namespace XFILE;
 using namespace PLAYLIST;
 using KODI::UTILITY::CDigest;
+using namespace KODI::VIDEO;
 
 #if !defined(TARGET_WINDOWS)
 unsigned int CUtil::s_randomSeed = time(NULL);
@@ -473,6 +475,13 @@ bool CUtil::GetFilenameIdentifier(const std::string& fileName,
     }
   }
   return false;
+}
+
+bool CUtil::HasFilenameIdentifier(const std::string& fileName)
+{
+  std::string identifierType;
+  std::string identifier;
+  return GetFilenameIdentifier(fileName, identifierType, identifier);
 }
 
 void CUtil::CleanString(const std::string& strFileName,
@@ -1156,7 +1165,7 @@ void CUtil::SplitParams(const std::string &paramString, std::vector<std::string>
           if (quotaPos > 1 && quotaPos < parameter.length() - 1 && parameter[quotaPos - 1] == '=')
           {
             parameter.erase(parameter.length() - 1);
-            parameter.erase(quotaPos);
+            parameter.erase(quotaPos, 1);
           }
         }
         parameters.push_back(parameter);
@@ -1197,7 +1206,7 @@ void CUtil::SplitParams(const std::string &paramString, std::vector<std::string>
     if (quotaPos > 1 && quotaPos < parameter.length() - 1 && parameter[quotaPos - 1] == '=')
     {
       parameter.erase(parameter.length() - 1);
-      parameter.erase(quotaPos);
+      parameter.erase(quotaPos, 1);
     }
   }
   if (!parameter.empty() || parameters.size())
@@ -2047,10 +2056,8 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
   auto start = std::chrono::steady_clock::now();
 
   CFileItem item(strMovie, false);
-  if ((item.IsInternetStream() && !URIUtils::IsOnLAN(item.GetDynPath()))
-    || item.IsPlayList()
-    || item.IsLiveTV()
-    || !item.IsVideo())
+  if ((item.IsInternetStream() && !URIUtils::IsOnLAN(item.GetDynPath())) || item.IsPlayList() ||
+      item.IsLiveTV() || !IsVideo(item))
     return;
 
   CLog::Log(LOGDEBUG, "{}: Searching for subtitles...", __FUNCTION__);
@@ -2339,11 +2346,8 @@ std::string CUtil::GetVobSubIdxFromSub(const std::string& vobSub)
 void CUtil::ScanForExternalAudio(const std::string& videoPath, std::vector<std::string>& vecAudio)
 {
   CFileItem item(videoPath, false);
-  if ( item.IsInternetStream()
-   ||  item.IsPlayList()
-   ||  item.IsLiveTV()
-   ||  item.IsPVR()
-   || !item.IsVideo())
+  if (item.IsInternetStream() || item.IsPlayList() || item.IsLiveTV() || item.IsPVR() ||
+      !IsVideo(item))
     return;
 
   std::string strBasePath;

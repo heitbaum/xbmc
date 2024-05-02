@@ -340,6 +340,8 @@ public:
   void FlushRenderer() override;
   void SetRenderViewMode(int mode, float zoom, float par, float shift, bool stretch) override;
   float GetRenderAspectRatio() const override;
+  void GetRects(CRect& source, CRect& dest, CRect& view) const override;
+  unsigned int GetOrientation() const override;
   void TriggerUpdateResolution() override;
   bool IsRenderingVideo() const override;
   bool Supports(EINTERLACEMETHOD method) const override;
@@ -514,10 +516,19 @@ protected:
   int m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
   struct SSpeedState
   {
-    double lastpts;  // holds last display pts during ff/rw operations
-    int64_t lasttime;
-    double lastseekpts;
-    double lastabstime;
+    double lastpts{0.0}; // holds last display pts during ff/rw operations
+    int64_t lasttime{0};
+    double lastseekpts{0.0};
+    double lastabstime{0.0};
+
+    void Reset(double pts)
+    {
+      *this = {};
+      if (pts != DVD_NOPTS_VALUE)
+      {
+        lastseekpts = pts;
+      }
+    }
   } m_SpeedState;
 
   double m_offset_pts;

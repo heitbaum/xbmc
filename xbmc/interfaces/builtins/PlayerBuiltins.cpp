@@ -9,6 +9,7 @@
 #include "PlayerBuiltins.h"
 
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "GUIUserMessages.h"
 #include "PartyModeManager.h"
 #include "PlayListPlayer.h"
@@ -21,6 +22,9 @@
 #include "application/ApplicationPowerHandling.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
+#include "music/MusicFileItemClassify.h"
 #include "music/MusicUtils.h"
 #include "playlists/PlayList.h"
 #include "pvr/PVRManager.h"
@@ -31,11 +35,14 @@
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "storage/MediaManager.h"
+#include "utils/PlayerUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/log.h"
 #include "video/PlayerController.h"
+#include "video/VideoFileItemClassify.h"
 #include "video/VideoUtils.h"
+#include "video/guilib/VideoGUIUtils.h"
 #include "video/guilib/VideoSelectActionProcessor.h"
 
 #include <math.h>
@@ -43,6 +50,8 @@
 #ifdef HAS_OPTICAL_DRIVE
 #include "Autorun.h"
 #endif
+
+using namespace KODI;
 
 /*! \brief Clear current playlist
  *  \param params (ignored)
@@ -180,17 +189,14 @@ static int PlayerControl(const std::vector<std::string>& params)
       appPlayer->SetPlaySpeed(playSpeed);
     }
   }
-  else if (paramlow =="tempoup" || paramlow == "tempodown")
+  else if (paramlow == "tempoup" || paramlow == "tempodown")
   {
     if (appPlayer->SupportsTempo() && appPlayer->IsPlaying() && !appPlayer->IsPaused())
     {
-      float playTempo = appPlayer->GetPlayTempo();
       if (paramlow == "tempodown")
-          playTempo -= 0.1f;
+        CPlayerUtils::AdvanceTempoStep(appPlayer, TempoStepChange::DECREASE);
       else if (paramlow == "tempoup")
-          playTempo += 0.1f;
-
-      appPlayer->SetTempo(playTempo);
+        CPlayerUtils::AdvanceTempoStep(appPlayer, TempoStepChange::INCREASE);
     }
   }
   else if (StringUtils::StartsWithNoCase(params[0], "tempo"))
@@ -424,8 +430,8 @@ namespace
 {
 void GetItemsForPlayList(const std::shared_ptr<CFileItem>& item, CFileItemList& queuedItems)
 {
-  if (VIDEO_UTILS::IsItemPlayable(*item))
-    VIDEO_UTILS::GetItemsForPlayList(item, queuedItems);
+  if (VIDEO::UTILS::IsItemPlayable(*item))
+    VIDEO::UTILS::GetItemsForPlayList(item, queuedItems);
   else if (MUSIC_UTILS::IsItemPlayable(*item))
     MUSIC_UTILS::GetItemsForPlayList(item, queuedItems);
 }
@@ -433,9 +439,9 @@ void GetItemsForPlayList(const std::shared_ptr<CFileItem>& item, CFileItemList& 
 PLAYLIST::Id GetPlayListId(const CFileItem& item)
 {
   PLAYLIST::Id playlistId{PLAYLIST::TYPE_NONE};
-  if (item.IsVideo())
+  if (VIDEO::IsVideo(item))
     playlistId = PLAYLIST::TYPE_VIDEO;
-  else if (item.IsAudio())
+  else if (MUSIC::IsAudio(item))
     playlistId = PLAYLIST::TYPE_MUSIC;
 
   return playlistId;
@@ -476,7 +482,7 @@ int PlayOrQueueMedia(const std::vector<std::string>& params, bool forcePlay)
     else if (StringUtils::EqualsNoCase(params[i], "resume"))
     {
       // force the item to resume (if applicable)
-      if (VIDEO_UTILS::GetItemResumeInformation(item).isResumable)
+      if (VIDEO::UTILS::GetItemResumeInformation(item).isResumable)
         item.SetStartOffset(STARTOFFSET_RESUME);
       else
         item.SetStartOffset(0);
@@ -527,17 +533,7 @@ int PlayOrQueueMedia(const std::vector<std::string>& params, bool forcePlay)
   }
   item.SetProperty("check_resume", false);
 
-  if (item.IsStack())
-  {
-    const VIDEO_UTILS::ResumeInformation resumeInfo =
-        VIDEO_UTILS::GetStackPartResumeInformation(item, playOffset + 1);
-
-    if (item.GetStartOffset() == STARTOFFSET_RESUME)
-      item.SetStartOffset(resumeInfo.startOffset);
-
-    item.m_lStartPartNumber = resumeInfo.partNumber;
-  }
-  else if (!forcePlay /* queue */ || item.m_bIsFolder || item.IsPlayList())
+  if (!forcePlay /* queue */ || item.m_bIsFolder || item.IsPlayList())
   {
     CFileItemList items;
     GetItemsForPlayList(std::make_shared<CFileItem>(item), items);
@@ -547,7 +543,7 @@ int PlayOrQueueMedia(const std::vector<std::string>& params, bool forcePlay)
       bool containsVideo = false;
       for (const auto& i : items)
       {
-        const bool isVideo = i->IsVideo();
+        const bool isVideo = VIDEO::IsVideo(*i);
         containsMusic |= !isVideo;
         containsVideo |= isVideo;
 
@@ -565,7 +561,7 @@ int PlayOrQueueMedia(const std::vector<std::string>& params, bool forcePlay)
         {
           for (int i = items.Size() - 1; i >= 0; i--) //remove music entries
           {
-            if (!items[i]->IsVideo())
+            if (!VIDEO::IsVideo(*items[i]))
               items.Remove(i);
           }
         }
@@ -592,7 +588,7 @@ int PlayOrQueueMedia(const std::vector<std::string>& params, bool forcePlay)
           if (playNext)
           {
             if (appPlayer->IsPlaying())
-              playlistPlayer.Insert(playlistId, items, playlistPlayer.GetCurrentSong() + 1);
+              playlistPlayer.Insert(playlistId, items, playlistPlayer.GetCurrentItemIdx() + 1);
             else
               playlistPlayer.Add(playlistId, items);
           }
@@ -624,7 +620,7 @@ int PlayOrQueueMedia(const std::vector<std::string>& params, bool forcePlay)
 
   if (forcePlay)
   {
-    if ((item.IsAudio() || item.IsVideo()) && !item.IsSmartPlayList() && !item.IsPVR())
+    if ((MUSIC::IsAudio(item) || VIDEO::IsVideo(item)) && !item.IsSmartPlayList() && !item.IsPVR())
     {
       if (!item.HasProperty("playlist_type_hint"))
         item.SetProperty("playlist_type_hint", GetPlayListId(item));

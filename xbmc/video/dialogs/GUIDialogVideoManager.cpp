@@ -9,32 +9,39 @@
 #include "GUIDialogVideoManager.h"
 
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "GUIUserMessages.h"
+#include "MediaSource.h"
 #include "ServiceBroker.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "filesystem/Directory.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "input/Key.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "playlists/PlayListTypes.h"
+#include "utils/ContentUtils.h"
 #include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 #include "utils/log.h"
 #include "video/VideoManagerTypes.h"
 #include "video/VideoThumbLoader.h"
-#include "video/VideoUtils.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
+#include "video/guilib/VideoGUIUtils.h"
 #include "video/guilib/VideoPlayActionProcessor.h"
 
 #include <algorithm>
 #include <string>
 
+using namespace KODI;
+
 static constexpr unsigned int CONTROL_LABEL_TITLE = 2;
 
 static constexpr unsigned int CONTROL_BUTTON_PLAY = 21;
-static constexpr unsigned int CONTROL_BUTTON_RENAME = 24;
 static constexpr unsigned int CONTROL_BUTTON_REMOVE = 26;
 static constexpr unsigned int CONTROL_BUTTON_CHOOSE_ART = 27;
 
@@ -47,9 +54,6 @@ CGUIDialogVideoManager::CGUIDialogVideoManager(int windowId)
     m_selectedVideoAsset(std::make_shared<CFileItem>())
 {
   m_loadType = KEEP_IN_MEMORY;
-
-  if (!m_database.Open())
-    CLog::LogF(LOGERROR, "Failed to open video database!");
 }
 
 bool CGUIDialogVideoManager::OnMessage(CGUIMessage& message)
@@ -77,10 +81,6 @@ bool CGUIDialogVideoManager::OnMessage(CGUIMessage& message)
       else if (control == CONTROL_BUTTON_PLAY)
       {
         Play();
-      }
-      else if (control == CONTROL_BUTTON_RENAME)
-      {
-        Rename();
       }
       else if (control == CONTROL_BUTTON_REMOVE)
       {
@@ -115,6 +115,9 @@ bool CGUIDialogVideoManager::OnAction(const CAction& action)
 
 void CGUIDialogVideoManager::OnInitWindow()
 {
+  if (!m_database.IsOpen() && !m_database.Open())
+    CLog::LogF(LOGERROR, "Failed to open video database!");
+
   CGUIDialog::OnInitWindow();
 
   SET_CONTROL_LABEL(CONTROL_LABEL_TITLE,
@@ -125,6 +128,12 @@ void CGUIDialogVideoManager::OnInitWindow()
   OnMessage(msg);
 
   UpdateControls();
+}
+
+void CGUIDialogVideoManager::OnDeinitWindow(int nextWindowID)
+{
+  CGUIDialog::OnDeinitWindow(nextWindowID);
+  m_database.Close();
 }
 
 void CGUIDialogVideoManager::Clear()
@@ -138,7 +147,6 @@ void CGUIDialogVideoManager::UpdateButtons()
   if (!m_videoAssetsList->IsEmpty())
   {
     CONTROL_ENABLE(CONTROL_BUTTON_CHOOSE_ART);
-    CONTROL_ENABLE(CONTROL_BUTTON_RENAME);
     CONTROL_ENABLE(CONTROL_BUTTON_REMOVE);
     CONTROL_ENABLE(CONTROL_BUTTON_PLAY);
 
@@ -147,7 +155,6 @@ void CGUIDialogVideoManager::UpdateButtons()
   else
   {
     CONTROL_DISABLE(CONTROL_BUTTON_CHOOSE_ART);
-    CONTROL_DISABLE(CONTROL_BUTTON_RENAME);
     CONTROL_DISABLE(CONTROL_BUTTON_REMOVE);
     CONTROL_DISABLE(CONTROL_BUTTON_PLAY);
   }
@@ -200,6 +207,9 @@ void CGUIDialogVideoManager::UpdateControls()
 
 void CGUIDialogVideoManager::Refresh()
 {
+  if (!m_database.IsOpen() && !m_database.Open())
+    CLog::LogF(LOGERROR, "Failed to open video database!");
+
   Clear();
 
   const int dbId{m_videoAsset->GetVideoInfoTag()->m_iDbId};
@@ -213,7 +223,10 @@ void CGUIDialogVideoManager::Refresh()
   CVideoThumbLoader loader;
 
   for (auto& item : *m_videoAssetsList)
+  {
+    item->SetProperty("noartfallbacktoowner", true);
     loader.LoadItem(item.get());
+  }
 
   CGUIMessage msg{GUI_MSG_LABEL_BIND, GetID(), CONTROL_LIST_ASSETS, 0, 0, m_videoAssetsList.get()};
   OnMessage(msg);
@@ -276,7 +289,7 @@ private:
     const ContentUtils::PlayMode mode{m_item->GetProperty("CheckAutoPlayNextItem").asBoolean()
                                           ? ContentUtils::PlayMode::CHECK_AUTO_PLAY_NEXT_ITEM
                                           : ContentUtils::PlayMode::PLAY_ONLY_THIS};
-    VIDEO_UTILS::PlayItem(m_item, "", mode);
+    VIDEO::UTILS::PlayItem(m_item, "", mode);
   }
 };
 } // unnamed namespace
@@ -305,12 +318,14 @@ void CGUIDialogVideoManager::Remove()
 
   // refresh data and controls
   Refresh();
+  RefreshSelectedVideoAsset();
   UpdateControls();
 }
 
 void CGUIDialogVideoManager::Rename()
 {
-  const int idAsset{ChooseVideoAsset(m_videoAsset)};
+  const int idAsset{
+      ChooseVideoAsset(m_videoAsset, GetVideoAssetType(), m_selectedVideoAsset->m_strTitle)};
   if (idAsset != -1)
   {
     //! @todo db refactor: should not be version, but asset
@@ -329,16 +344,26 @@ void CGUIDialogVideoManager::ChooseArt()
 
   // refresh data and controls
   Refresh();
+  UpdateControls();
 }
 
 void CGUIDialogVideoManager::SetSelectedVideoAsset(const std::shared_ptr<CFileItem>& asset)
 {
-  m_selectedVideoAsset = asset;
+  const int dbId{asset->GetVideoInfoTag()->m_iDbId};
+  const auto it{std::find_if(m_videoAssetsList->cbegin(), m_videoAssetsList->cend(),
+                             [dbId](const auto& entry)
+                             { return entry->GetVideoInfoTag()->m_iDbId == dbId; })};
+  if (it != m_videoAssetsList->cend())
+    m_selectedVideoAsset = (*it);
+  else
+    CLog::LogF(LOGERROR, "Item to select not found in asset list!");
 
   UpdateControls();
 }
 
-int CGUIDialogVideoManager::ChooseVideoAsset(const std::shared_ptr<CFileItem>& item)
+int CGUIDialogVideoManager::ChooseVideoAsset(const std::shared_ptr<CFileItem>& item,
+                                             VideoAssetType assetType,
+                                             const std::string& defaultName)
 {
   if (!item || !item->HasVideoInfoTag())
     return -1;
@@ -346,6 +371,27 @@ int CGUIDialogVideoManager::ChooseVideoAsset(const std::shared_ptr<CFileItem>& i
   const VideoDbContentType itemType{item->GetVideoContentType()};
   if (itemType != VideoDbContentType::MOVIES)
     return -1;
+
+  int dialogHeadingMsgId{};
+  int dialogButtonMsgId{};
+  int dialogNewHeadingMsgId{};
+
+  switch (assetType)
+  {
+    case VideoAssetType::VERSION:
+      dialogHeadingMsgId = 40215;
+      dialogButtonMsgId = 40216;
+      dialogNewHeadingMsgId = 40217;
+      break;
+    case VideoAssetType::EXTRA:
+      dialogHeadingMsgId = 40218;
+      dialogButtonMsgId = 40219;
+      dialogNewHeadingMsgId = 40220;
+      break;
+    default:
+      CLog::LogF(LOGERROR, "Unknown asset type ({})", static_cast<int>(assetType));
+      return -1;
+  }
 
   CVideoDatabase videodb;
   if (!videodb.Open())
@@ -364,7 +410,7 @@ int CGUIDialogVideoManager::ChooseVideoAsset(const std::shared_ptr<CFileItem>& i
 
   //! @todo db refactor: should not be version, but asset
   CFileItemList list;
-  videodb.GetVideoVersionTypes(itemType, list);
+  videodb.GetVideoVersionTypes(itemType, assetType, list);
 
   int assetId{-1};
   while (true)
@@ -373,18 +419,20 @@ int CGUIDialogVideoManager::ChooseVideoAsset(const std::shared_ptr<CFileItem>& i
 
     dialog->Reset();
     dialog->SetItems(list);
-    dialog->SetHeading(40208);
-    dialog->EnableButton(true, 40004);
+    dialog->SetHeading(dialogHeadingMsgId);
+    dialog->EnableButton(true, dialogButtonMsgId);
     dialog->Open();
 
     if (dialog->IsButtonPressed())
     {
       // create a new asset
-      if (CGUIKeyboardFactory::ShowAndGetInput(assetTitle, g_localizeStrings.Get(40004), false))
+      assetTitle = defaultName;
+      if (CGUIKeyboardFactory::ShowAndGetInput(assetTitle,
+                                               g_localizeStrings.Get(dialogNewHeadingMsgId), false))
       {
         assetTitle = StringUtils::Trim(assetTitle);
         //! @todo db refactor: should not be version, but asset
-        assetId = videodb.AddVideoVersionType(assetTitle, VideoAssetTypeOwner::USER);
+        assetId = videodb.AddVideoVersionType(assetTitle, VideoAssetTypeOwner::USER, assetType);
       }
     }
     else if (dialog->IsConfirmed())
@@ -403,7 +451,7 @@ int CGUIDialogVideoManager::ChooseVideoAsset(const std::shared_ptr<CFileItem>& i
 
     //! @todo db refactor: should not be versions, but assets
     CFileItemList assets;
-    videodb.GetVideoVersions(itemType, dbId, assets);
+    videodb.GetVideoVersions(itemType, dbId, assets, assetType);
 
     // the selected video asset already exists
     if (std::any_of(assets.cbegin(), assets.cend(),
@@ -418,4 +466,35 @@ int CGUIDialogVideoManager::ChooseVideoAsset(const std::shared_ptr<CFileItem>& i
   }
 
   return assetId;
+}
+
+void CGUIDialogVideoManager::AppendItemFolderToFileBrowserSources(
+    std::vector<CMediaSource>& sources)
+{
+  const std::string itemDir{URIUtils::GetParentPath(m_videoAsset->GetDynPath())};
+  if (!itemDir.empty() && XFILE::CDirectory::Exists(itemDir))
+  {
+    CMediaSource itemSource{};
+    itemSource.strName = g_localizeStrings.Get(36041); // * Item folder
+    itemSource.strPath = itemDir;
+    sources.emplace_back(itemSource);
+  }
+}
+
+void CGUIDialogVideoManager::RefreshSelectedVideoAsset()
+{
+  if (!m_selectedVideoAsset || !m_selectedVideoAsset->HasVideoInfoTag() ||
+      !m_videoAssetsList->Size())
+  {
+    m_selectedVideoAsset = std::make_shared<CFileItem>();
+    return;
+  }
+
+  const int dbId{m_selectedVideoAsset->GetVideoInfoTag()->m_iDbId};
+  const auto it{std::find_if(m_videoAssetsList->cbegin(), m_videoAssetsList->cend(),
+                             [dbId](const auto& entry)
+                             { return entry->GetVideoInfoTag()->m_iDbId == dbId; })};
+
+  if (it == m_videoAssetsList->cend())
+    m_selectedVideoAsset = m_videoAssetsList->Get(0);
 }

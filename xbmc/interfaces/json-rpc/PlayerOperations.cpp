@@ -10,6 +10,7 @@
 
 #include "AudioLibrary.h"
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "GUIInfoManager.h"
 #include "GUIUserMessages.h"
 #include "PartyModeManager.h"
@@ -30,6 +31,7 @@
 #include "interfaces/builtins/Builtins.h"
 #include "messaging/ApplicationMessenger.h"
 #include "music/MusicDatabase.h"
+#include "music/MusicFileItemClassify.h"
 #include "pictures/SlideShowDelegator.h"
 #include "pvr/PVRManager.h"
 #include "pvr/PVRPlaybackState.h"
@@ -47,6 +49,7 @@
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "utils/MathUtils.h"
+#include "utils/PlayerUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "video/VideoDatabase.h"
@@ -54,6 +57,7 @@
 #include <map>
 #include <tuple>
 
+using namespace KODI;
 using namespace JSONRPC;
 using namespace PVR;
 
@@ -223,7 +227,8 @@ JSONRPC_STATUS CPlayerOperations::GetItem(const std::string &method, ITransportL
           {
             case VideoDbContentType::MOVIES:
               videodatabase.GetMovieInfo("", *(fileItem->GetVideoInfoTag()),
-                                         fileItem->GetVideoInfoTag()->m_iDbId);
+                                         fileItem->GetVideoInfoTag()->m_iDbId,
+                                         fileItem->GetVideoInfoTag()->GetAssetInfo().GetId());
               break;
 
             case VideoDbContentType::MUSICVIDEOS:
@@ -266,7 +271,7 @@ JSONRPC_STATUS CPlayerOperations::GetItem(const std::string &method, ITransportL
           }
         }
 
-        if (fileItem->IsMusicDb())
+        if (MUSIC::IsMusicDb(*fileItem))
         {
           CMusicDatabase musicdb;
           CFileItemList items;
@@ -467,6 +472,45 @@ JSONRPC_STATUS CPlayerOperations::SetSpeed(const std::string &method, ITransport
         return InvalidParams;
 
       result["speed"] = appPlayer->IsPausedPlayback() ? 0 : (int)lrint(appPlayer->GetPlaySpeed());
+      return OK;
+    }
+
+    case Picture:
+    case None:
+    default:
+      return FailedToExecute;
+  }
+}
+
+JSONRPC_STATUS CPlayerOperations::SetTempo(const std::string& method,
+                                           ITransportLayer* transport,
+                                           IClient* client,
+                                           const CVariant& parameterObject,
+                                           CVariant& result)
+{
+  switch (GetPlayer(parameterObject["playerid"]))
+  {
+    case Video:
+    case Audio:
+    {
+      auto& components = CServiceBroker::GetAppComponents();
+      const auto appPlayer = components.GetComponent<CApplicationPlayer>();
+      if (!appPlayer->SupportsTempo() || appPlayer->IsPausedPlayback())
+        return FailedToExecute;
+
+      if (parameterObject["tempo"].isDouble())
+        appPlayer->SetTempo(parameterObject["tempo"].asFloat());
+      else if (parameterObject["tempo"].isString())
+      {
+        if (parameterObject["tempo"].asString().compare("increment") == 0)
+          CPlayerUtils::AdvanceTempoStep(appPlayer, TempoStepChange::INCREASE);
+        else
+          CPlayerUtils::AdvanceTempoStep(appPlayer, TempoStepChange::DECREASE);
+      }
+      else
+        return InvalidParams;
+
+      result["tempo"] = appPlayer->GetPlayTempo();
       return OK;
     }
 
@@ -1683,7 +1727,7 @@ JSONRPC_STATUS CPlayerOperations::GetPropertyValue(PlayerType player, const std:
         if (!IsPVRChannel() &&
             CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() == playlistId)
         {
-          result = CServiceBroker::GetPlaylistPlayer().GetCurrentSong();
+          result = CServiceBroker::GetPlaylistPlayer().GetCurrentItemIdx();
         }
         else
           result = -1;

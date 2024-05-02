@@ -10,6 +10,7 @@
 
 #include "Autorun.h"
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "GUIDialogPictureInfo.h"
 #include "GUIPassword.h"
 #include "GUIWindowSlideShow.h"
@@ -26,7 +27,6 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/actions/ActionIDs.h"
-#include "interfaces/AnnouncementManager.h"
 #include "media/MediaLockState.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "pictures/SlideShowDelegator.h"
@@ -41,6 +41,7 @@
 #include "utils/Variant.h"
 #include "utils/XTimeUtils.h"
 #include "utils/log.h"
+#include "video/VideoFileItemClassify.h"
 #include "view/GUIViewState.h"
 
 #define CONTROL_BTNSORTASC          4
@@ -48,6 +49,7 @@
 
 using namespace XFILE;
 using namespace KODI::MESSAGING;
+using namespace KODI::VIDEO;
 
 using namespace std::chrono_literals;
 
@@ -295,7 +297,7 @@ bool CGUIWindowPictures::GetDirectory(const std::string &strDirectory, CFileItem
 
 bool CGUIWindowPictures::OnPlayMedia(int iItem, const std::string &player)
 {
-  if (m_vecItems->Get(iItem)->IsVideo())
+  if (IsVideo(*m_vecItems->Get(iItem)))
     return CGUIMediaWindow::OnPlayMedia(iItem);
 
   return ShowPicture(iItem, false);
@@ -328,7 +330,7 @@ bool CGUIWindowPictures::ShowPicture(int iItem, bool startSlideShow)
   {
     if (!pItem->m_bIsFolder &&
         !(URIUtils::IsRAR(pItem->GetPath()) || URIUtils::IsZIP(pItem->GetPath())) &&
-        (pItem->IsPicture() || (bShowVideos && pItem->IsVideo())))
+        (pItem->IsPicture() || (bShowVideos && IsVideo(*pItem))))
     {
       slideShow.Add(pItem.get());
     }
@@ -343,11 +345,7 @@ bool CGUIWindowPictures::ShowPicture(int iItem, bool startSlideShow)
     slideShow.StartSlideShow();
   else
   {
-    CVariant param;
-    param["player"]["speed"] = 1;
-    param["player"]["playerid"] = PLAYLIST::TYPE_PICTURE;
-    CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::Player, "OnPlay",
-                                                       slideShow.GetCurrentSlide(), param);
+    slideShow.PlayPicture();
   }
 
   //! @todo this should trigger some event that should led the window manager to activate another window

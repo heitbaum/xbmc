@@ -10,14 +10,14 @@
 
 #include "ServiceBroker.h"
 #include "XBMCApp.h"
-#include "input/Key.h"
+#include "input/keyboard/XBMC_keysym.h"
 #include "windowing/android/WinSystemAndroid.h"
 
 #include <androidjni/KeyCharacterMap.h>
 
 typedef struct {
   int32_t nativeKey;
-  int16_t xbmcKey;
+  uint16_t xbmcKey;
 } KeyMap;
 
 static KeyMap keyMap[] = {

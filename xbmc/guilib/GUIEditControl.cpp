@@ -16,8 +16,10 @@
 #include "ServiceBroker.h"
 #include "XBDateTime.h"
 #include "dialogs/GUIDialogNumeric.h"
-#include "input/Key.h"
-#include "input/XBMC_vkeys.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
+#include "input/keyboard/KeyIDs.h"
+#include "input/keyboard/XBMC_vkeys.h"
 #include "utils/CharsetConverter.h"
 #include "utils/ColorUtils.h"
 #include "utils/Digest.h"
@@ -91,8 +93,12 @@ void CGUIEditControl::DefaultConstructor()
   m_editOffset = 0;
 }
 
-CGUIEditControl::CGUIEditControl(const CGUIButtonControl &button)
-    : CGUIButtonControl(button)
+CGUIEditControl::CGUIEditControl(const CGUIButtonControl& button) : CGUIButtonControl(button)
+{
+  DefaultConstructor();
+}
+
+CGUIEditControl::CGUIEditControl(const CGUIEditControl& button) : CGUIButtonControl(button)
 {
   DefaultConstructor();
 }
@@ -531,7 +537,7 @@ void CGUIEditControl::ProcessText(unsigned int currentTime)
     if (HasFocus() || leftTextWidth == 0)
       changed |= m_label2.SetOverflow(CGUILabel::OVER_FLOW_CLIP);
     else
-      changed |= m_label2.SetOverflow(CGUILabel::OVER_FLOW_TRUNCATE);
+      changed |= m_label2.SetOverflow(CGUILabel::OVER_FLOW_TRUNCATE_LEFT);
 
     changed |= m_label2.Process(currentTime);
     CServiceBroker::GetWinSystem()->GetGfxContext().RestoreClipRegion();
@@ -542,6 +548,9 @@ void CGUIEditControl::ProcessText(unsigned int currentTime)
 
 void CGUIEditControl::RenderText()
 {
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetRenderOrder() ==
+      RENDER_ORDER_FRONT_TO_BACK)
+    return;
   m_label.Render();
 
   if (CServiceBroker::GetWinSystem()->GetGfxContext().SetClipRegion(m_clipRect.x1, m_clipRect.y1, m_clipRect.Width(), m_clipRect.Height()))

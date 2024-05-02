@@ -47,6 +47,7 @@ void CVideoInfoTag::Reset()
   m_assetInfo.Clear();
   m_hasVideoVersions = false;
   m_hasVideoExtras = false;
+  m_isDefaultVideoVersion = false;
   m_strFile.clear();
   m_strPath.clear();
   m_strMPAARating.clear();
@@ -97,6 +98,7 @@ void CVideoInfoTag::Reset()
   m_relevance = -1;
   m_parsedDetails = 0;
   m_coverArt.clear();
+  m_updateSetOverview = true;
 }
 
 bool CVideoInfoTag::Save(TiXmlNode *node, const std::string &tag, bool savePathInfo, const TiXmlElement *additionalNode)
@@ -229,6 +231,7 @@ bool CVideoInfoTag::Save(TiXmlNode *node, const std::string &tag, bool savePathI
   m_assetInfo.Save(movie);
   XMLUtils::SetBoolean(movie, "hasvideoversions", m_hasVideoVersions);
   XMLUtils::SetBoolean(movie, "hasvideoextras", m_hasVideoExtras);
+  XMLUtils::SetBoolean(movie, "isdefaultvideoversion", m_isDefaultVideoVersion);
   XMLUtils::SetStringArray(movie, "credits", m_writingCredits);
   XMLUtils::SetStringArray(movie, "director", m_director);
   if (HasPremiered())
@@ -483,6 +486,7 @@ void CVideoInfoTag::Merge(CVideoInfoTag& other)
   m_assetInfo.Merge(other.GetAssetInfo());
   m_hasVideoVersions = other.m_hasVideoVersions;
   m_hasVideoExtras = other.m_hasVideoExtras;
+  m_isDefaultVideoVersion = other.m_isDefaultVideoVersion;
 }
 
 void CVideoInfoTag::Archive(CArchive& ar)
@@ -519,6 +523,7 @@ void CVideoInfoTag::Archive(CArchive& ar)
     m_assetInfo.Archive(ar);
     ar << m_hasVideoVersions;
     ar << m_hasVideoExtras;
+    ar << m_isDefaultVideoVersion;
     ar << m_duration;
     ar << m_strFile;
     ar << m_strPath;
@@ -624,6 +629,7 @@ void CVideoInfoTag::Archive(CArchive& ar)
     m_assetInfo.Archive(ar);
     ar >> m_hasVideoVersions;
     ar >> m_hasVideoExtras;
+    ar >> m_isDefaultVideoVersion;
     ar >> m_duration;
     ar >> m_strFile;
     ar >> m_strPath;
@@ -746,6 +752,7 @@ void CVideoInfoTag::Serialize(CVariant& value) const
   m_assetInfo.Serialize(value);
   value["hasvideoversions"] = m_hasVideoVersions;
   value["hasvideoextras"] = m_hasVideoExtras;
+  value["isdefaultvideoversion"] = m_isDefaultVideoVersion;
   value["runtime"] = GetDuration();
   value["file"] = m_strFile;
   value["path"] = m_strPath;
@@ -1256,6 +1263,7 @@ void CVideoInfoTag::ParseNative(const TiXmlElement* movie, bool prioritise)
 
   // Pre-Jarvis NFO file:
   // <set>A set</set>
+  m_updateSetOverview = false;
   if (XMLUtils::GetString(movie, "set", value))
     SetSet(value);
   // Jarvis+:
@@ -1268,7 +1276,10 @@ void CVideoInfoTag::ParseNative(const TiXmlElement* movie, bool prioritise)
     {
       SetSet(value);
       if (XMLUtils::GetString(node, "overview", value))
+      {
         SetSetOverview(value);
+        m_updateSetOverview = true;
+      }
     }
   }
 
@@ -1901,4 +1912,9 @@ void CVideoInfoTag::SetHasVideoVersions(bool hasVersions)
 void CVideoInfoTag::SetHasVideoExtras(bool hasExtras)
 {
   m_hasVideoExtras = hasExtras;
+}
+
+void CVideoInfoTag::SetIsDefaultVideoVersion(bool isDefaultVideoVersion)
+{
+  m_isDefaultVideoVersion = isDefaultVideoVersion;
 }

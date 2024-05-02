@@ -9,6 +9,7 @@
 #include "PictureThumbLoader.h"
 
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "Picture.h"
 #include "ServiceBroker.h"
 #include "TextureCache.h"
@@ -23,8 +24,10 @@
 #include "utils/FileExtensionProvider.h"
 #include "utils/FileUtils.h"
 #include "utils/URIUtils.h"
+#include "video/VideoFileItemClassify.h"
 #include "video/VideoThumbLoader.h"
 
+using namespace KODI::VIDEO;
 using namespace XFILE;
 
 CPictureThumbLoader::CPictureThumbLoader() : CThumbLoader()
@@ -78,7 +81,8 @@ bool CPictureThumbLoader::LoadItemCached(CFileItem* pItem)
   { // load the thumb from the image file
     thumb = pItem->HasArt("thumb") ? pItem->GetArt("thumb") : CTextureUtils::GetWrappedThumbURL(pItem->GetPath());
   }
-  else if (pItem->IsVideo() && !pItem->IsZIP() && !pItem->IsRAR() && !pItem->IsCBZ() && !pItem->IsCBR() && !pItem->IsPlayList())
+  else if (IsVideo(*pItem) && !pItem->IsZIP() && !pItem->IsRAR() && !pItem->IsCBZ() &&
+           !pItem->IsCBR() && !pItem->IsPlayList())
   { // video
     CVideoThumbLoader loader;
     loader.LoadItemCached(pItem);

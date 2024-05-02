@@ -10,6 +10,7 @@
 
 #include "Autorun.h"
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "GUIUserMessages.h"
 #include "ServiceBroker.h"
 #include "Util.h"
@@ -18,7 +19,8 @@
 #include "filesystem/PlaylistFileDirectory.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/LocalizeStrings.h"
-#include "input/Key.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "music/MusicUtils.h"
 #include "playlists/PlayListM3U.h"
 #include "settings/Settings.h"

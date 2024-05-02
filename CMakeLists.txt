@@ -226,23 +226,23 @@ set(required_deps ASS>=0.15.0
                   ${PLATFORM_REQUIRED_DEPS})
 
 # Optional dependencies. Keep in alphabetical order please
-set(optional_deps Alsa
+set(optional_deps Alsa>=1.0.27
                   Avahi
                   Bluetooth
-                  Bluray
+                  Bluray>=0.9.3
                   CAP
                   CEC>=4.0.0
                   Dav1d
                   DBus
-                  Iso9660pp
-                  LCMS2
+                  Iso9660pp>=2.1.0
+                  LCMS2>=2.10
                   LircClient
                   MDNS
-                  MicroHttpd
-                  NFS
+                  MicroHttpd>=0.9.40
+                  NFS>=3.0.0
                   Pipewire>=0.3.50
                   Plist
-                  PulseAudio
+                  PulseAudio>=11.0.0
                   Python
                   SmbClient
                   Sndio
@@ -358,7 +358,6 @@ copy_files_from_filelist_to_buildtree(${CMAKE_SOURCE_DIR}/cmake/installdata/comm
                                       ${CMAKE_SOURCE_DIR}/cmake/installdata/${CORE_SYSTEM_NAME}/*.txt)
 
 list(APPEND SKINS "${CMAKE_SOURCE_DIR}/addons/skin.estuary\;${CMAKE_SOURCE_DIR}")
-list(APPEND SKINS "${CMAKE_SOURCE_DIR}/addons/skin.estouchy\;${CMAKE_SOURCE_DIR}")
 
 if(NOT ${CORE_SYSTEM_NAME} MATCHES "windows")
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/system/players/VideoPlayer)
@@ -523,7 +522,7 @@ endif()
 
 # testing
 if(HOST_CAN_EXECUTE_TARGET AND ENABLE_TESTING)
-  find_package(Gtest)
+  find_package(Gtest 1.10.0 REQUIRED)
 
   copy_files_from_filelist_to_buildtree(${CMAKE_SOURCE_DIR}/cmake/installdata/test-reference-data.txt NO_INSTALL)
   add_executable(${APP_NAME_LC}-test EXCLUDE_FROM_ALL ${CMAKE_SOURCE_DIR}/xbmc/test/xbmc-test.cpp ${test_sources})

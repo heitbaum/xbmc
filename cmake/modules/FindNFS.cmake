@@ -16,6 +16,14 @@ if(NOT TARGET libnfs::nfs)
                    -DENABLE_UTILS=OFF
                    -DENABLE_EXAMPLES=OFF)
 
+    if(WIN32 OR WINDOWS_STORE)
+      set(${MODULE}_C_FLAGS "/sdl-")
+      set(${MODULE}_CXX_FLAGS "/sdl-")
+
+      set(patches "${CORE_SOURCE_DIR}/tools/depends/target/${MODULE_LC}/01-MSUWP-compat.patch")
+      generate_patchcommand("${patches}")
+    endif()
+
     BUILD_DEP_TARGET()
 
     set(_nfs_definitions HAS_NFS_SET_TIMEOUT
@@ -41,9 +49,19 @@ if(NOT TARGET libnfs::nfs)
     buildlibnfs()
   else()
     if(NOT TARGET libnfs::nfs)
+
+      if(NFS_FIND_VERSION)
+        if(NFS_FIND_VERSION_EXACT)
+          set(NFS_FIND_SPEC "=${NFS_FIND_VERSION_COMPLETE}")
+        else()
+          set(NFS_FIND_SPEC ">=${NFS_FIND_VERSION_COMPLETE}")
+        endif()
+      endif()
+
+      find_package(PkgConfig)
       # Try pkgconfig based search as last resort
       if(PKG_CONFIG_FOUND)
-        pkg_check_modules(PC_LIBNFS libnfs>=3.0.0 QUIET)
+        pkg_check_modules(PC_LIBNFS libnfs${NFS_FIND_SPEC} QUIET)
       endif()
 
       find_library(LIBNFS_LIBRARY_RELEASE NAMES nfs libnfs

@@ -296,7 +296,6 @@ bool CPlayerGUIInfo::GetLabel(std::string& value, const CFileItem *item, int con
     case PLAYER_EDITLIST:
     case PLAYER_CUTS:
     case PLAYER_SCENE_MARKERS:
-    case PLAYER_CUTLIST:
     case PLAYER_CHAPTERS:
       value = GetContentRanges(info.m_info);
       return true;
@@ -591,8 +590,10 @@ bool CPlayerGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int context
       {
         if (item->HasProperty("playlistposition"))
         {
-          value = static_cast<int>(item->GetProperty("playlisttype").asInteger()) == CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() &&
-                  static_cast<int>(item->GetProperty("playlistposition").asInteger()) == CServiceBroker::GetPlaylistPlayer().GetCurrentSong();
+          value = static_cast<int>(item->GetProperty("playlisttype").asInteger()) ==
+                      CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() &&
+                  static_cast<int>(item->GetProperty("playlistposition").asInteger()) ==
+                      CServiceBroker::GetPlaylistPlayer().GetCurrentItemIdx();
           return true;
         }
         else if (m_currentItem && !m_currentItem->GetPath().empty())
@@ -635,7 +636,6 @@ std::string CPlayerGUIInfo::GetContentRanges(int iInfo) const
     switch (iInfo)
     {
       case PLAYER_EDITLIST:
-      case PLAYER_CUTLIST:
         ranges = GetEditList(data, duration);
         break;
       case PLAYER_CUTS:

@@ -61,6 +61,7 @@ public:
   void GetSlideShowContents(CFileItemList& list) override;
   std::shared_ptr<const CFileItem> GetCurrentSlide() override;
   void StartSlideShow() override;
+  void PlayPicture() override;
   bool InSlideShow() const override;
   int NumSlides() const override;
   int CurrentSlide() const override;
@@ -87,7 +88,7 @@ public:
   int GetDirection() const override { return m_iDirection; }
 
   bool OnMessage(CGUIMessage& message) override;
-  EVENT_RESULT OnMouseEvent(const CPoint& point, const CMouseEvent& event) override;
+  EVENT_RESULT OnMouseEvent(const CPoint& point, const KODI::MOUSE::CMouseEvent& event) override;
   bool OnAction(const CAction& action) override;
   void Render() override;
   void RenderEx() override;

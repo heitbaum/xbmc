@@ -9,12 +9,14 @@
 #include "PlaylistOperations.h"
 
 #include "FileItem.h"
+#include "FileItemList.h"
 #include "GUIUserMessages.h"
 #include "PlayListPlayer.h"
 #include "ServiceBroker.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "input/Key.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "messaging/ApplicationMessenger.h"
 #include "pictures/PictureInfoTag.h"
 #include "pictures/SlideShowDelegator.h"
@@ -166,7 +168,7 @@ JSONRPC_STATUS CPlaylistOperations::Remove(const std::string &method, ITransport
 
   int position = (int)parameterObject["position"].asInteger();
   if (CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() == playlistId &&
-      CServiceBroker::GetPlaylistPlayer().GetCurrentSong() == position)
+      CServiceBroker::GetPlaylistPlayer().GetCurrentItemIdx() == position)
     return InvalidParams;
 
   CServiceBroker::GetAppMessenger()->PostMsg(TMSG_PLAYLISTPLAYER_REMOVE, playlistId, position);

@@ -15,6 +15,7 @@
 
 class CFileItem;
 class CFileItemList;
+class CMediaSource;
 
 enum class VideoAssetType;
 
@@ -26,9 +27,11 @@ public:
 
   virtual void SetVideoAsset(const std::shared_ptr<CFileItem>& item);
   virtual void SetSelectedVideoAsset(const std::shared_ptr<CFileItem>& asset);
+  virtual bool HasUpdatedItems() const { return m_hasUpdatedItems; }
 
 protected:
   void OnInitWindow() override;
+  void OnDeinitWindow(int nextWindowID) override;
   bool OnMessage(CGUIMessage& message) override;
   bool OnAction(const CAction& action) override;
 
@@ -50,12 +53,17 @@ protected:
 
   void UpdateControls();
 
-  static int ChooseVideoAsset(const std::shared_ptr<CFileItem>& item);
+  static int ChooseVideoAsset(const std::shared_ptr<CFileItem>& item,
+                              VideoAssetType assetType,
+                              const std::string& defaultName);
+  void AppendItemFolderToFileBrowserSources(std::vector<CMediaSource>& sources);
+  void RefreshSelectedVideoAsset();
 
   CVideoDatabase m_database;
   std::shared_ptr<CFileItem> m_videoAsset;
   std::unique_ptr<CFileItemList> m_videoAssetsList;
   std::shared_ptr<CFileItem> m_selectedVideoAsset;
+  bool m_hasUpdatedItems{false};
 
 private:
   CGUIDialogVideoManager() = delete;
