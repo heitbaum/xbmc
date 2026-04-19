@@ -205,6 +205,13 @@ void CSMB::Init()
       }
     }
 
+#if !defined(SMBCLIENT_VERSION_MAJOR) || !defined(SMBCLIENT_VERSION_MINOR) || \
+    (SMBCLIENT_VERSION_MAJOR == 0 && SMBCLIENT_VERSION_MINOR < 1)
+    // smbc_init is deprecated since libsmbclient 0.1 (Samba 4.0) but required on
+    // Samba < 3.4 to initialize the old interface compatibility layer needed by
+    // smbc_set_context below. Samba 3.4-3.6 also falls into this path as they
+    // lack ABI versioning in their pkg-config file.
+
     // reads smb.conf so this MUST be after we create smb.conf
     // multiple smbc_init calls are ignored by libsmbclient.
     // note: this is important as it initializes the smb old
@@ -214,6 +221,7 @@ void CSMB::Init()
     // 32 bytes -> set_param_opt
     // 16 bytes -> set_param_opt
     smbc_init(xb_smbc_auth, 0);
+#endif
 
     // setup our context
     m_context = smbc_new_context();

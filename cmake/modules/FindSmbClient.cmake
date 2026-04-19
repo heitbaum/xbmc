@@ -40,6 +40,13 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
       # pkgconfig sets SMBCLIENT_INCLUDEDIR, map this to our "standard" variable name
       set(SMBCLIENT_INCLUDE_DIR ${SMBCLIENT_INCLUDEDIR})
       set(SMBCLIENT_VERSION ${PC_SMBCLIENT_VERSION})
+
+      # Extract version components for compile-time version checks
+      if(SMBCLIENT_VERSION)
+        string(REPLACE "." ";" SMBCLIENT_VERSION_LIST ${SMBCLIENT_VERSION})
+        list(GET SMBCLIENT_VERSION_LIST 0 SMBCLIENT_VERSION_MAJOR)
+        list(GET SMBCLIENT_VERSION_LIST 1 SMBCLIENT_VERSION_MINOR)
+      endif()
     else()
       find_path(SMBCLIENT_INCLUDE_DIR NAMES libsmbclient.h)
       find_library(SMBCLIENT_LIBRARY NAMES smbclient)
@@ -59,7 +66,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
       set_target_properties(${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME} PROPERTIES
                                                                        IMPORTED_LOCATION "${SMBCLIENT_LIBRARY}"
                                                                        INTERFACE_INCLUDE_DIRECTORIES "${SMBCLIENT_INCLUDE_DIR}"
-                                                                       INTERFACE_COMPILE_DEFINITIONS HAS_FILESYSTEM_SMB)
+                                                                       INTERFACE_COMPILE_DEFINITIONS "HAS_FILESYSTEM_SMB;SMBCLIENT_VERSION_MAJOR=${SMBCLIENT_VERSION_MAJOR};SMBCLIENT_VERSION_MINOR=${SMBCLIENT_VERSION_MINOR}")
 
       # Add link libraries for static lib usage found from pkg-config
       if(PC_SMBCLIENT_LINK_LIBRARIES)
